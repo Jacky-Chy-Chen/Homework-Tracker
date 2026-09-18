@@ -47,3 +47,17 @@ export const relative = (from: string, to: string) => {
   if (n === -1) return 'yesterday'
   return n > 0 ? `in ${n} days` : `${-n} days ago`
 }
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+/** 'MON 21 SEP' — the mono date labels used across the UI. */
+export const fmtTag = (iso: string) => {
+  const d = parseISO(iso)
+  return `${WEEKDAYS[d.getDay()].toUpperCase()} ${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
+/** 'FRI · 18 SEP 2026' */
+export const fmtEyebrow = (iso: string) => {
+  const d = parseISO(iso)
+  return `${WEEKDAYS[d.getDay()].toUpperCase()} · ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+}

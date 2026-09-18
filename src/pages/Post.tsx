@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import type { AppData } from '../App'
-import ItemCard from '../components/ItemCard'
-import { addDays, fmtShort, nextSchoolDay, todayISO } from '../lib/dates'
-import { TYPE_LABEL } from '../lib/homework'
+import Icon from '../components/Icon'
+import { ItemRow, pad2, SectionLabel, TopBar, Wordmark } from '../components/ui'
+import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
+import { subjectColor, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type ItemType, type NewItem } from '../lib/store'
 
 const TYPES: ItemType[] = ['daily', 'project', 'test', 'other']
@@ -38,26 +39,43 @@ function SignIn({ onSignedIn }: { onSignedIn: (u: string | null) => void }) {
   }
 
   return (
-    <form className="form narrow" onSubmit={submit}>
-      <h1>Sign in to post</h1>
-      <p className="muted">Only the homework poster needs an account. Everyone else can just read.</p>
-      <label>
-        Email
-        <input type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </label>
-      <label>
-        Password
-        <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      </label>
-      {err && <div className="error">{err}</div>}
-      <button className="primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-    </form>
+    <div className="signin">
+      <a href="#/" className="icon-btn ghost signin-back" aria-label="Back to today's homework">
+        <Icon name="left" size={20} stroke={2} />
+      </a>
+      <div className="signin-body">
+        <div className="stack gap-lg">
+          <Wordmark big />
+          <div className="stack">
+            <h1>Poster sign in</h1>
+            <p className="lead">Only the homework poster needs an account. Everyone else can just read.</p>
+          </div>
+        </div>
+        <form className="stack" onSubmit={submit}>
+          <label className="field">
+            <span className="field-label mono">EMAIL</span>
+            <input type="email" autoComplete="username" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+          <label className="field">
+            <span className="field-label mono">PASSWORD</span>
+            <input type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          </label>
+          {err && <div className="alert error">{err}</div>}
+          <button className="btn-primary" disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
+            {!busy && <Icon name="arrow" size={18} stroke={2.2} />}
+          </button>
+        </form>
+      </div>
+      <div className="mono dim small center signin-foot">Read-only link for classmates · no login needed</div>
+    </div>
   )
 }
 
 function Editor({ data }: { data: AppData }) {
   const [form, setForm] = useState<NewItem>(blank)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [typingSubject, setTypingSubject] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
@@ -67,6 +85,9 @@ function Editor({ data }: { data: AppData }) {
   const today = todayISO()
   const current = data.items.filter((i) => i.due_date >= today)
   const past = data.items.filter((i) => i.due_date < today).reverse()
+  // No subjects yet (first use) or a new one being typed: show the text box.
+  const showSubjectInput = typingSubject || subjects.length === 0 || (form.subject !== '' && !subjects.includes(form.subject))
+  const gap = daysBetween(form.assigned_date, form.due_date)
 
   const set = <K extends keyof NewItem>(k: K, v: NewItem[K]) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -78,8 +99,17 @@ function Editor({ data }: { data: AppData }) {
       due_date: !editingId && type !== 'daily' && f.due_date === nextSchoolDay(f.assigned_date) ? addDays(f.assigned_date, 7) : f.due_date,
     }))
 
+  const pickSubject = (s: string) => {
+    setTypingSubject(false)
+    set('subject', s)
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!form.subject.trim()) {
+      setErr('Pick a subject.')
+      return
+    }
     if (form.due_date < form.assigned_date) {
       setErr('Due date is before the assigned date.')
       return
@@ -101,6 +131,7 @@ function Editor({ data }: { data: AppData }) {
       setTimeout(() => setFlash(null), 2500)
       // Keep type and dates so posting several subjects in a row is quick.
       setForm((f) => ({ ...blank(), type: f.type, assigned_date: f.assigned_date, due_date: f.due_date }))
+      setTypingSubject(false)
       setEditingId(null)
     } catch (e) {
       setErr((e as Error).message)
@@ -112,6 +143,7 @@ function Editor({ data }: { data: AppData }) {
   const edit = (i: Item) => {
     const { id, ...rest } = i
     setEditingId(id)
+    setTypingSubject(false)
     setForm(rest)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -128,96 +160,155 @@ function Editor({ data }: { data: AppData }) {
 
   const cancelEdit = () => {
     setEditingId(null)
+    setTypingSubject(false)
     setForm(blank())
   }
 
-  const actions = (i: Item) => (
-    <>
-      <button className="text-btn" onClick={() => edit(i)}>Edit</button>
-      <button className="text-btn danger" onClick={() => remove(i)}>Delete</button>
-    </>
-  )
-
   return (
     <>
-      <form className="form" onSubmit={submit}>
-        <h1>{editingId ? 'Edit item' : 'Post homework'}</h1>
+      <TopBar poster />
 
-        <div className="seg" role="radiogroup" aria-label="Type">
-          {TYPES.map((t) => (
-            <button type="button" key={t} className={form.type === t ? 'on' : ''} onClick={() => setType(t)}>
-              {TYPE_LABEL[t]}
+      <header className="page-head">
+        <div className="page-head-text">
+          <div className="eyebrow mono">{editingId ? 'EDITING' : 'NEW ENTRY'}</div>
+          <h1>{editingId ? 'Edit item' : 'Post homework'}</h1>
+        </div>
+      </header>
+
+      <div className="post-layout">
+        <form className="panel stack gap-md" onSubmit={submit}>
+          <div className="field">
+            <span className="field-label mono">TYPE</span>
+            <div className="seg seg-4" role="radiogroup" aria-label="Type">
+              {TYPES.map((t) => (
+                <button type="button" role="radio" aria-checked={form.type === t} key={t} className={form.type === t ? 'on' : ''} onClick={() => setType(t)}>
+                  {TYPE_LABEL[t]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <span className="field-label mono">SUBJECT</span>
+            {subjects.length > 0 && (
+              <div className="chips">
+                {subjects.map((s) => {
+                  const on = !typingSubject && form.subject === s
+                  const c = subjectColor(s)
+                  return (
+                    <button
+                      type="button"
+                      key={s}
+                      className={`chip mono ${on ? 'on' : ''}`}
+                      aria-pressed={on}
+                      style={on ? { borderColor: c, background: `${c}24` } : undefined}
+                      onClick={() => pickSubject(s)}
+                    >
+                      <span className="swatch" style={{ background: c }} />
+                      {s}
+                    </button>
+                  )
+                })}
+                <button type="button" className={`chip chip-new mono ${showSubjectInput ? 'on' : ''}`} onClick={() => { setTypingSubject(true); set('subject', '') }}>
+                  <Icon name="plus" size={12} stroke={2.4} />New
+                </button>
+              </div>
+            )}
+            {showSubjectInput && (
+              <input
+                aria-label="New subject"
+                value={form.subject}
+                onChange={(e) => set('subject', e.target.value)}
+                placeholder="Subject name, e.g. Physics"
+                autoFocus={typingSubject}
+              />
+            )}
+          </div>
+
+          <label className="field">
+            <span className="field-label mono">{form.type === 'daily' ? 'WHAT TO DO' : 'TITLE'}</span>
+            <input
+              value={form.title}
+              onChange={(e) => set('title', e.target.value)}
+              placeholder={form.type === 'daily' ? 'Worksheet 3.2, #1–20' : form.type === 'test' ? 'Unit 2 test' : 'Group research project'}
+              required
+            />
+          </label>
+
+          <div className="stack gap-sm">
+            <div className="two-col">
+              <label className="field">
+                <span className="field-label mono">ASSIGNED</span>
+                <input type="date" className="mono" value={form.assigned_date} onChange={(e) => set('assigned_date', e.target.value)} required />
+              </label>
+              <label className="field">
+                <span className="field-label mono">DUE</span>
+                <input type="date" className="mono" value={form.due_date} onChange={(e) => set('due_date', e.target.value)} required />
+              </label>
+            </div>
+            <div className="mono small muted hint">
+              <span className={gap < 0 ? 'danger' : 'accent'}>T–{Math.max(gap, 0)}D</span>
+              <span>
+                {gap < 0 ? 'Due date is before assigned' : form.type !== 'daily' && gap === 7 && !editingId ? 'Projects and tests default to one week out' : `Due ${gap === 0 ? 'the same day' : `${gap} day${gap === 1 ? '' : 's'} after assigned`}`}
+              </span>
+            </div>
+          </div>
+
+          <label className="field">
+            <span className="field-label mono">NOTES <span className="dim">· OPTIONAL</span></span>
+            <textarea rows={3} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="Group size, what to bring, format…" />
+          </label>
+
+          <label className="field">
+            <span className="field-label mono">LINK <span className="dim">· OPTIONAL</span></span>
+            <input type="url" className="mono" value={form.link ?? ''} onChange={(e) => set('link', e.target.value)} placeholder="https://" />
+          </label>
+
+          {err && <div className="alert error">{err}</div>}
+          {flash && <div className="alert ok"><Icon name="check" size={16} stroke={2.2} />{flash}</div>}
+
+          <div className="form-actions">
+            {editingId && <button type="button" className="btn-secondary" onClick={cancelEdit}>Cancel</button>}
+            <button className="btn-primary" disabled={busy}>
+              {busy ? 'Saving…' : editingId ? 'Save changes' : 'Add to board'}
+              {!busy && <Icon name={editingId ? 'check' : 'arrow'} size={18} stroke={2.2} />}
             </button>
-          ))}
+          </div>
+        </form>
+
+        <div className="stack gap-lg">
+          <section className="stack">
+            <SectionLabel right={pad2(current.length)}>CURRENT</SectionLabel>
+            {current.length === 0 ? (
+              <div className="empty mono">Nothing due from today on.</div>
+            ) : (
+              <div className="row-list">
+                {current.map((i) => <ItemRow key={i.id} item={i} onEdit={() => edit(i)} onDelete={() => remove(i)} />)}
+              </div>
+            )}
+          </section>
+
+          {past.length > 0 && (
+            <section className="stack">
+              <button className="btn-ghost mono past-toggle" onClick={() => setShowPast(!showPast)}>
+                {showPast ? 'HIDE' : 'SHOW'} PAST ITEMS ({pad2(past.length)})
+              </button>
+              {showPast && (
+                <div className="row-list">
+                  {past.map((i) => <ItemRow key={i.id} item={i} onEdit={() => edit(i)} onDelete={() => remove(i)} />)}
+                </div>
+              )}
+            </section>
+          )}
+
+          {store.mode === 'supabase' && (
+            <div className="mono small muted signout-row mobile-only">
+              Signed in as {data.user}
+              <button className="link-btn" onClick={data.signOut}>Sign out</button>
+            </div>
+          )}
         </div>
-
-        <label>
-          Subject
-          <input list="subjects" value={form.subject} onChange={(e) => set('subject', e.target.value)} placeholder="Math" required />
-          <datalist id="subjects">
-            {subjects.map((s) => <option key={s} value={s} />)}
-          </datalist>
-        </label>
-
-        <label>
-          {form.type === 'daily' ? 'What to do' : 'Title'}
-          <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder={form.type === 'daily' ? 'Worksheet 3.2, #1–20' : 'Group research project'} required />
-        </label>
-
-        <div className="row">
-          <label>
-            Assigned
-            <input type="date" value={form.assigned_date} onChange={(e) => set('assigned_date', e.target.value)} required />
-          </label>
-          <label>
-            Due
-            <input type="date" value={form.due_date} onChange={(e) => set('due_date', e.target.value)} required />
-          </label>
-        </div>
-
-        <label>
-          Notes <span className="muted">(optional)</span>
-          <textarea rows={2} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="Groups of 4, bring printed copy…" />
-        </label>
-
-        <label>
-          Link <span className="muted">(optional)</span>
-          <input type="url" value={form.link ?? ''} onChange={(e) => set('link', e.target.value)} placeholder="https://…" />
-        </label>
-
-        {err && <div className="error">{err}</div>}
-        {flash && <div className="flash">✓ {flash}</div>}
-
-        <div className="row buttons">
-          {editingId && <button type="button" onClick={cancelEdit}>Cancel</button>}
-          <button className="primary" disabled={busy}>{busy ? 'Saving…' : editingId ? 'Save changes' : 'Add'}</button>
-        </div>
-      </form>
-
-      <section>
-        <h2>Current ({current.length})</h2>
-        {current.length === 0 && <div className="empty">Nothing due from today on.</div>}
-        {current.map((i) => (
-          <ItemCard key={i.id} item={i} actions={actions(i)} />
-        ))}
-      </section>
-
-      <section>
-        <button className="text-btn" onClick={() => setShowPast(!showPast)}>
-          {showPast ? 'Hide' : 'Show'} past items ({past.length})
-        </button>
-        {showPast && past.map((i) => <ItemCard key={i.id} item={i} actions={actions(i)} />)}
-      </section>
-
-      {store.mode === 'supabase' && (
-        <p className="muted small">
-          Signed in as {data.user} ·{' '}
-          <button className="text-btn" onClick={async () => { await store.signOut(); data.setUser(null); location.hash = '#/' }}>
-            Sign out
-          </button>
-        </p>
-      )}
-      <p className="muted small">Tip: assigned {fmtShort(today)} is today; due defaults to the next school day.</p>
+      </div>
     </>
   )
 }

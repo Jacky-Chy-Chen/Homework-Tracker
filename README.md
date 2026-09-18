@@ -43,4 +43,8 @@ WeChat — pick a host classmates can actually open, then pin the link in the gr
 - `src/lib/store.ts` — data layer: Supabase, or localStorage in demo mode
 - `src/lib/homework.ts` — "coming up" rules and the group-chat message text
 - `src/lib/dates.ts` — local `YYYY-MM-DD` date helpers
-- `src/pages/` — Today, Calendar, Post
+- `src/pages/` — Today, Calendar, Post (sign-in lives in Post)
+- `src/components/` — shared UI (cards, timeline, month grid, icons)
+- `src/styles.css` — the "Terminal Night" theme; colors are CSS variables at the top
+
+Fonts (Geist, Geist Mono) are bundled via `@fontsource` rather than Google Fonts, which is blocked in mainland China.

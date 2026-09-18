@@ -60,9 +60,22 @@ export function buildMessage(items: Item[], day: string) {
   return lines.join('\n')
 }
 
-const PALETTE = ['#e0564b', '#e8913a', '#c9a227', '#4caf6a', '#2f9e9e', '#3b7ddd', '#6b5bd6', '#b84fb0', '#8a6d52', '#5f7480']
+// Bright enough to read on the dark background.
+const FIXED: Record<string, string> = {
+  math: '#4FD1C5',
+  english: '#F6C85F',
+  chemistry: '#FF8FB1',
+  history: '#7AA2F7',
+  biology: '#9ECE6A',
+  physics: '#B69CFF',
+  chinese: '#FF9E64',
+  geography: '#73DACA',
+}
+const PALETTE = ['#4FD1C5', '#F6C85F', '#FF8FB1', '#7AA2F7', '#9ECE6A', '#B69CFF', '#FF9E64', '#73DACA', '#E0AF68', '#BB9AF7']
 
 export function subjectColor(subject: string) {
+  const fixed = FIXED[subject.trim().toLowerCase()]
+  if (fixed) return fixed
   let h = 0
   for (const c of subject.trim().toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0
   return PALETTE[h % PALETTE.length]

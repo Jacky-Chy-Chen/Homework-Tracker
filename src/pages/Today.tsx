@@ -1,93 +1,101 @@
 import { useState } from 'react'
 import type { AppData } from '../App'
-import ItemCard from '../components/ItemCard'
-import { addDays, fmtLong, relative, todayISO } from '../lib/dates'
-import { assignedOn, buildMessage, groupBySubject, REMINDER_DAYS, subjectColor, upcomingFrom } from '../lib/homework'
+import Icon from '../components/Icon'
+import MonthGrid from '../components/MonthGrid'
+import { ItemCard, MessageConsole, pad2, SectionLabel, TimelineItem, TopBar } from '../components/ui'
+import { addDays, fmtEyebrow, fmtLong, parseISO, relative, todayISO } from '../lib/dates'
+import { assignedOn, buildMessage, groupBySubject, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 
 export default function Today({ data }: { data: AppData }) {
   const [day, setDay] = useState(todayISO)
   const today = todayISO()
-  const posted = assignedOn(data.items, day)
+  const isToday = day === today
+  // Keep subjects together, the same order the chat message uses.
+  const posted = groupBySubject(assignedOn(data.items, day)).flatMap(([, list]) => list)
   const upcoming = upcomingFrom(data.items, day)
+  const d = parseISO(day)
+  const month = new Date(d.getFullYear(), d.getMonth(), 1)
 
   return (
     <>
-      <header className="day-nav">
-        <button className="icon-btn" onClick={() => setDay(addDays(day, -1))} aria-label="Previous day">‹</button>
-        <div className="day-label">
-          <h1>{day === today ? "Today's homework" : fmtLong(day)}</h1>
-          <div className="sub">
-            {day === today ? fmtLong(day) : relative(today, day)}
-            {day !== today && (
-              <button className="text-btn" onClick={() => setDay(today)}>Back to today</button>
-            )}
+      <TopBar label="CLASS FEED" poster={!!data.user} />
+
+      <header className="page-head">
+        <div className="page-head-text">
+          <div className="eyebrow mono">
+            {fmtEyebrow(day)}
+            {!isToday && <span className="eyebrow-rel"> · {relative(today, day).toUpperCase()}</span>}
           </div>
+          <h1>{isToday ? "Today's homework" : fmtLong(day)}</h1>
         </div>
-        <button className="icon-btn" onClick={() => setDay(addDays(day, 1))} aria-label="Next day">›</button>
+        <div className="head-actions">
+          {!isToday && (
+            <button className="btn-ghost mono" onClick={() => setDay(today)}>TODAY</button>
+          )}
+          <button className="icon-btn" onClick={() => setDay(addDays(day, -1))} aria-label="Previous day">
+            <Icon name="left" />
+          </button>
+          <button className="icon-btn" onClick={() => setDay(addDays(day, 1))} aria-label="Next day">
+            <Icon name="right" />
+          </button>
+          {data.user && (
+            <a href="#/post" className="btn-primary desktop-only">
+              <Icon name="plus" size={16} stroke={2.4} />
+              New entry
+            </a>
+          )}
+        </div>
       </header>
 
-      {data.loading ? (
-        <p className="muted">Loading…</p>
-      ) : posted.length === 0 ? (
-        <div className="empty">No homework posted for this day.</div>
-      ) : (
-        groupBySubject(posted).map(([subject, list]) => (
-          <section key={subject} className="subject-group">
-            <h2 style={{ color: subjectColor(subject) }}>{subject}</h2>
-            {list.map((i) => <ItemCard key={i.id} item={i} hideSubject />)}
+      {!data.loading && (
+        <div className="status mono">
+          <span><span className="dot" />{posted.length} new</span>
+          <span><span className="dot dot-test" />{upcoming.length} due within {REMINDER_DAYS} days</span>
+        </div>
+      )}
+
+      <div className="today-grid">
+        <div className="col">
+          <section className="stack order-1">
+            <SectionLabel right={pad2(posted.length)}>{isToday ? 'NEW TODAY' : 'POSTED THIS DAY'}</SectionLabel>
+            {data.loading ? (
+              <div className="empty mono">Loading…</div>
+            ) : posted.length === 0 ? (
+              <div className="empty mono">No homework posted for this day.</div>
+            ) : (
+              posted.map((i) => <ItemCard key={i.id} item={i} />)
+            )}
           </section>
-        ))
-      )}
 
-      {upcoming.length > 0 && (
-        <section className="upcoming">
-          <h2>⏰ Coming up (next {REMINDER_DAYS} days)</h2>
-          {upcoming.map((i) => <ItemCard key={i.id} item={i} />)}
-        </section>
-      )}
+          {data.user && !data.loading && (
+            <div className="order-3">
+              <MessageConsole text={buildMessage(data.items, day)} reminders={upcoming.length} />
+            </div>
+          )}
+        </div>
 
-      {data.user && !data.loading && <CopyMessage text={buildMessage(data.items, day)} />}
-    </>
-  )
-}
+        <div className="col">
+          <section className="card mini-cal desktop-only">
+            <div className="mini-cal-head">
+              <span className="mini-cal-title">
+                {month.toLocaleDateString('en-US', { month: 'long' })}
+                <span className="mono muted small">{month.getFullYear()}</span>
+              </span>
+              <a href="#/calendar" className="mono accent small">OPEN CALENDAR →</a>
+            </div>
+            <MonthGrid month={month} items={data.items} />
+          </section>
 
-function CopyMessage({ text }: { text: string }) {
-  const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
-
-  const copy = async () => {
-    let ok = false
-    try {
-      await navigator.clipboard.writeText(text)
-      ok = true
-    } catch {
-      // WeChat's browser often blocks the async clipboard API; fall back to execCommand.
-      const ta = document.createElement('textarea')
-      ta.value = text
-      ta.setAttribute('readonly', '')
-      ta.style.position = 'fixed'
-      ta.style.opacity = '0'
-      document.body.appendChild(ta)
-      ta.select()
-      ta.setSelectionRange(0, text.length)
-      try {
-        ok = document.execCommand('copy')
-      } catch {}
-      document.body.removeChild(ta)
-    }
-    setStatus(ok ? 'copied' : 'failed')
-    setTimeout(() => setStatus('idle'), 2500)
-  }
-
-  return (
-    <section className="message-box">
-      <div className="message-head">
-        <h2>💬 Group chat message</h2>
-        <button className="primary" onClick={copy}>
-          {status === 'copied' ? '✓ Copied' : 'Copy'}
-        </button>
+          {upcoming.length > 0 && (
+            <section className="stack order-2">
+              <SectionLabel right={pad2(upcoming.length)}>COMING UP · {REMINDER_DAYS} DAYS</SectionLabel>
+              <div className="timeline">
+                {upcoming.map((i) => <TimelineItem key={i.id} item={i} from={day} />)}
+              </div>
+            </section>
+          )}
+        </div>
       </div>
-      {status === 'failed' && <p className="muted">Couldn't copy automatically. Long-press the text below to copy it.</p>}
-      <textarea className="message" readOnly value={text} rows={Math.min(16, text.split('\n').length + 1)} />
-    </section>
+    </>
   )
 }

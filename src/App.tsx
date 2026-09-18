@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { store, type Item } from './lib/store'
 import Icon, { type IconName } from './components/Icon'
-import { Wordmark } from './components/ui'
+import { ThemeToggle, Wordmark } from './components/ui'
 import Today from './pages/Today'
 import Calendar from './pages/Calendar'
 import Post from './pages/Post'
@@ -88,14 +88,17 @@ export default function App() {
               </a>
             ))}
           </nav>
-          {user && store.mode === 'supabase' ? (
-            <div className="sidebar-user">
-              <span className="mono accent xsmall"><span className="dot" />SIGNED IN AS POSTER</span>
-              <button className="link-btn" onClick={signOut}>Sign out</button>
-            </div>
-          ) : !user ? (
-            <a className="sidebar-user mono muted small" href="#/post">Poster sign in →</a>
-          ) : null}
+          <div className="sidebar-bottom">
+            <ThemeToggle row />
+            {user && store.mode === 'supabase' ? (
+              <div className="sidebar-user">
+                <span className="mono accent xsmall"><span className="dot" />SIGNED IN AS POSTER</span>
+                <button className="link-btn" onClick={signOut}>Sign out</button>
+              </div>
+            ) : !user ? (
+              <a className="sidebar-user mono muted small" href="#/post">Poster sign in →</a>
+            ) : null}
+          </div>
         </aside>
       )}
 

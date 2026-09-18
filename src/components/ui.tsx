@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { daysBetween, fmtTag, relative, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
 import type { Item } from '../lib/store'
+import { setTheme, useTheme } from '../lib/theme'
 import Icon from './Icon'
 
 export const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -14,16 +15,37 @@ export function Wordmark({ big }: { big?: boolean }) {
   )
 }
 
-/** The small bar above each page: wordmark on the left, a label on the right. */
+/** Sun/moon button. `row` is the sidebar version with a text label. */
+export function ThemeToggle({ row }: { row?: boolean }) {
+  const theme = useTheme()
+  const next = theme === 'dark' ? 'light' : 'dark'
+  const label = `Switch to ${next} mode`
+  const icon = <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={row ? 18 : 19} stroke={1.8} />
+  return row ? (
+    <button className="theme-row" onClick={() => setTheme(next)}>
+      {icon}
+      {next === 'light' ? 'Light mode' : 'Dark mode'}
+    </button>
+  ) : (
+    <button className="icon-btn ghost theme-btn" onClick={() => setTheme(next)} aria-label={label} title={label}>
+      {icon}
+    </button>
+  )
+}
+
+/** The small bar above each page: wordmark on the left, a label and the theme toggle on the right. */
 export function TopBar({ label, poster }: { label?: string; poster?: boolean }) {
   return (
     <div className="topbar">
       <Wordmark />
-      {poster ? (
-        <span className="mono topbar-label accent"><span className="dot" />POSTER</span>
-      ) : (
-        label && <span className="mono topbar-label">{label}</span>
-      )}
+      <span className="topbar-right">
+        {poster ? (
+          <span className="mono topbar-label accent"><span className="dot" />POSTER</span>
+        ) : (
+          label && <span className="mono topbar-label">{label}</span>
+        )}
+        <ThemeToggle />
+      </span>
     </div>
   )
 }
@@ -40,7 +62,7 @@ export function SectionLabel({ children, right }: { children: React.ReactNode; r
 export function SubjectLabel({ subject }: { subject: string }) {
   const color = subjectColor(subject)
   return (
-    <span className="subject-label mono" style={{ color }}>
+    <span className="subject-label mono" style={{ '--c': color } as React.CSSProperties}>
       <span className="swatch" style={{ background: color }} />
       {subject}
     </span>

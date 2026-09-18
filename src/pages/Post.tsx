@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
-import { ItemRow, pad2, SectionLabel, TopBar, Wordmark } from '../components/ui'
+import { ItemRow, pad2, SectionLabel, ThemeToggle, TopBar, Wordmark } from '../components/ui'
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
 import { subjectColor, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type ItemType, type NewItem } from '../lib/store'
@@ -40,9 +40,12 @@ function SignIn({ onSignedIn }: { onSignedIn: (u: string | null) => void }) {
 
   return (
     <div className="signin">
-      <a href="#/" className="icon-btn ghost signin-back" aria-label="Back to today's homework">
-        <Icon name="left" size={20} stroke={2} />
-      </a>
+      <div className="signin-top">
+        <a href="#/" className="icon-btn ghost signin-back" aria-label="Back to today's homework">
+          <Icon name="left" size={20} stroke={2} />
+        </a>
+        <ThemeToggle />
+      </div>
       <div className="signin-body">
         <div className="stack gap-lg">
           <Wordmark big />

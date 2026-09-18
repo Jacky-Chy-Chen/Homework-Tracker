@@ -1,4 +1,6 @@
-/* "Terminal Night" — dark ground, dot grid, Geist + Geist Mono, one lime accent. */
+/* "Terminal Night" — dark ground, dot grid, Geist + Geist Mono, one lime accent.
+   A light theme overrides the same variables under [data-theme='light'].
+   --accent is for text, borders and dots; --accent-fill is for solid lime fills. */
 
 :root {
   --bg: #0B0D10;
@@ -12,6 +14,8 @@
   --muted: #A1A9B4;
   --dim: #7D8693;
   --accent: #C8F560;
+  --accent-fill: #C8F560;
+  --on-accent: #0B0D10;
   --accent-soft: rgba(200, 245, 96, 0.12);
   --accent-line: rgba(200, 245, 96, 0.4);
   --test: #FF7A66;
@@ -22,7 +26,37 @@
   --sidebar-w: 248px;
   --sans: 'Geist Sans', ui-sans-serif, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --grid-dot: #1A1E25;
+  --tabs-bg: rgba(11, 13, 16, 0.94);
+  --placeholder: #6F7885;
+  --banner: #F6C85F;
+  --banner-bg: rgba(246, 200, 95, 0.1);
   color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg: #F4F5F1;
+  --bg-deep: #ECEEE8;
+  --surface: #FFFFFF;
+  --surface-2: #EEF1E9;
+  --line: #DCE0D8;
+  --line-2: #C6CBC2;
+  --text: #14171C;
+  --text-2: #2A2F36;
+  --muted: #545C66;
+  --dim: #69717C;
+  --accent: #4D7C0F;
+  --accent-soft: rgba(77, 124, 15, 0.1);
+  --accent-line: rgba(77, 124, 15, 0.35);
+  --test: #C8412B;
+  --test-soft: rgba(200, 65, 43, 0.08);
+  --test-line: rgba(200, 65, 43, 0.35);
+  --grid-dot: #DADDD5;
+  --tabs-bg: rgba(244, 245, 241, 0.94);
+  --placeholder: #8A919A;
+  --banner: #7A5A00;
+  --banner-bg: rgba(246, 200, 95, 0.22);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -30,7 +64,7 @@
 html, body {
   margin: 0;
   background-color: var(--bg);
-  background-image: radial-gradient(#1A1E25 1px, transparent 1px);
+  background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
   background-size: 20px 20px;
   background-attachment: fixed;
   color: var(--text);
@@ -77,8 +111,8 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
   text-align: center;
   font-size: 11px;
   letter-spacing: 0.08em;
-  color: #F6C85F;
-  background: rgba(246, 200, 95, 0.1);
+  color: var(--banner);
+  background: var(--banner-bg);
   border-bottom: 1px solid rgba(246, 200, 95, 0.25);
 }
 
@@ -131,8 +165,8 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
   justify-content: center;
   gap: 10px;
   padding: 0 20px;
-  background: var(--accent);
-  color: var(--bg);
+  background: var(--accent-fill);
+  color: var(--on-accent);
   border: 0;
   border-radius: 12px;
   font-size: 16px;
@@ -164,7 +198,32 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
 .link-btn { padding: 0; border: 0; background: none; color: var(--muted); font-size: 14px; text-align: left; }
 .link-btn:hover { color: var(--text); }
 
+/* ---------- Theme toggle ---------- */
+
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.theme-btn { margin: -10px -10px -10px 0; }
+.theme-row {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: left;
+}
+.theme-row:hover { color: var(--text); background: var(--surface); }
+.signin-top { display: flex; align-items: center; justify-content: space-between; }
+
 /* ---------- Cards ---------- */
+
+/* Bright subject colors are too light to read as text on white; darken them
+   (browsers without color-mix fall back to the plain text color). */
+[data-theme='light'] .subject-label { color: var(--text); color: color-mix(in srgb, var(--c) 52%, #000); }
+[data-theme='light'] .card, [data-theme='light'] .panel, [data-theme='light'] .row-list { box-shadow: 0 1px 2px rgba(20, 23, 28, 0.04); }
 
 .card {
   display: flex;
@@ -181,7 +240,7 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
 .card-notes { margin-top: -2px; font-size: 14px; line-height: 1.45; color: var(--muted); white-space: pre-wrap; }
 .card-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent); word-break: break-all; }
 
-.subject-label { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.subject-label { color: var(--c); display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
 
 .tag { flex: none; padding: 3px 7px; border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; border: 1px solid; }
 .tag-test { color: var(--test); background: var(--test-soft); border-color: var(--test-line); }
@@ -274,7 +333,7 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
 .month-cell.selected { background: var(--surface-2); border-color: var(--accent); }
 .month-cell-top { display: flex; align-items: center; justify-content: space-between; }
 .month-num { min-width: 18px; padding: 0 4px; border-radius: 5px; font-size: 12px; font-weight: 500; line-height: 18px; text-align: center; }
-.month-num.today { background: var(--accent); color: var(--bg); }
+.month-num.today { background: var(--accent-fill); color: var(--on-accent); }
 .flag { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: 50%; }
 .flag-test { background: var(--test); }
 .flag-project { background: var(--accent); }
@@ -326,7 +385,7 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
 .field textarea { padding: 12px 14px; resize: vertical; line-height: 1.5; }
 .field input[type='date'] { padding: 0 12px; font-size: 14px; }
 .field input:focus, .field textarea:focus { border-color: var(--accent); }
-.field input::placeholder, .field textarea::placeholder { color: #6F7885; }
+.field input::placeholder, .field textarea::placeholder { color: var(--placeholder); }
 .signin .field input { background: var(--surface); min-height: 52px; padding: 0 16px; border-radius: 12px; }
 
 .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -380,7 +439,7 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
   display: flex;
   justify-content: center;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  background: rgba(11, 13, 16, 0.94);
+  background: var(--tabs-bg);
   border-top: 1px solid var(--line);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
@@ -444,8 +503,8 @@ h1 { margin: 0; font-size: 32px; font-weight: 600; letter-spacing: -0.03em; line
   .sidebar-nav a:hover { color: var(--text); background: var(--surface); }
   .sidebar-nav a.active { background: var(--surface-2); color: var(--text); font-weight: 600; }
   .sidebar-nav a.active svg { color: var(--accent); }
+  .sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
   .sidebar-user {
-    margin-top: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;

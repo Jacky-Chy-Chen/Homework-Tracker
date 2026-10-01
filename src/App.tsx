@@ -38,15 +38,15 @@ const NAV: { route: Route; href: string; label: string; icon: IconName; editorOn
   { route: 'calendar', href: '#/calendar', label: 'Calendar', icon: 'calendar' },
   { route: 'schedule', href: '#/schedule', label: 'Classes', icon: 'grid' },
   { route: 'materials', href: '#/materials', label: 'Files', icon: 'folder' },
-  { route: 'post', href: '#/post', label: 'Post', icon: 'plus', editorOnly: true },
+  { route: 'post', href: '#/post', label: 'Add', icon: 'plus', editorOnly: true },
 ]
 
 const TITLES: Record<Route, string> = {
-  today: 'Homework',
-  calendar: 'Calendar · Homework',
-  schedule: 'Classes · Homework',
-  materials: 'Materials · Homework',
-  post: 'Post · Homework',
+  today: 'Classboard',
+  calendar: 'Calendar · Classboard',
+  schedule: 'Classes · Classboard',
+  materials: 'Files · Classboard',
+  post: 'Add homework · Classboard',
 }
 
 export default function App() {
@@ -123,7 +123,7 @@ export default function App() {
   return (
     <div className={`app ${signingIn ? 'no-nav' : ''}`}>
       {store.mode === 'demo' && (
-        <div className="demo-banner mono">DEMO MODE · data is saved only in this browser</div>
+        <div className="demo-banner">Demo mode · saved only in this browser</div>
       )}
 
       {!signingIn && (
@@ -141,11 +141,11 @@ export default function App() {
             <ThemeToggle row />
             {user && store.mode === 'supabase' ? (
               <div className="sidebar-user">
-                <span className="mono accent xsmall"><span className="dot" />SIGNED IN AS EDITOR</span>
+                <span className="pill-editor"><span className="dot" />Signed in as editor</span>
                 <button className="link-btn" onClick={signOut}>Sign out</button>
               </div>
             ) : !user ? (
-              <a className="sidebar-user mono muted small" href="#/post">Sign in →</a>
+              <a className="sidebar-user" href="#/post">Sign in to post</a>
             ) : null}
           </div>
         </aside>
@@ -160,7 +160,7 @@ export default function App() {
         {route === 'post' && <Post data={data} />}
         {!user && route !== 'post' && (
           <footer className="footer">
-            <a href="#/post" className="mono">
+            <a href="#/post">
               Sign in to post <Icon name="arrow" size={14} stroke={2} />
             </a>
           </footer>

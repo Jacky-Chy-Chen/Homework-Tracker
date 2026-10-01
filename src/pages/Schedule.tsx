@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
-import { SectionLabel, TopBar } from '../components/ui'
-import { addDays, fmtTag, parseISO, todayISO } from '../lib/dates'
+import { SectionHeading, TopBar } from '../components/ui'
+import { addDays, fmtLong, fmtTag, parseISO, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
 import { CLASS_INFO, DAY_NAMES, daySlots, PERIODS, weekdayIndex } from '../lib/schedule'
 import { store, type Timetable } from '../lib/store'
@@ -16,117 +16,195 @@ function mondayOf(iso: string) {
 
 export default function Schedule({ data }: { data: AppData }) {
   const today = todayISO()
+  const [view, setView] = useState<'day' | 'week'>('day')
   const [weekStart, setWeekStart] = useState(() => mondayOf(today))
+  const [selected, setSelected] = useState(() => (weekdayIndex(today) === null ? mondayOf(today) : today))
   const [editing, setEditing] = useState<{ date: string; period: number } | null>(null)
 
   const days = [0, 1, 2, 3, 4].map((n) => addDays(weekStart, n))
-  const rows = PERIODS.filter((p) => !p.wedOnly || true)
+  const thisWeek = weekStart === mondayOf(today)
+  const slotsFor = (date: string) => daySlots(date, data.timetable, data.changes)
   const weekChanges = data.changes.filter((c) => c.date >= weekStart && c.date <= addDays(weekStart, 4))
 
-  const slotsFor = (date: string) => daySlots(date, data.timetable, data.changes)
-  const thisWeek = weekStart === mondayOf(today)
+  const pick = (iso: string) => {
+    setSelected(iso)
+    setView('day')
+  }
 
   return (
     <>
-      <TopBar label="SCHEDULE" editor={!!data.user} />
+      <TopBar editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">
-          <div className="eyebrow mono">{CLASS_INFO.grade} · ROOM {CLASS_INFO.room} · {CLASS_INFO.term}</div>
-          <h1>{thisWeek ? 'This week' : `Week of ${fmtTag(weekStart)}`}</h1>
+          <div className="eyebrow">Room {CLASS_INFO.room} · {CLASS_INFO.term}</div>
+          <h1>Classes</h1>
         </div>
         <div className="head-actions">
-          {!thisWeek && <button className="btn-ghost mono" onClick={() => setWeekStart(mondayOf(today))}>THIS WEEK</button>}
-          <button className="icon-btn" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="Previous week"><Icon name="left" /></button>
-          <button className="icon-btn" onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label="Next week"><Icon name="right" /></button>
+          <div className="switch">
+            <button className={view === 'day' ? 'on' : ''} onClick={() => setView('day')}>Day</button>
+            <button className={view === 'week' ? 'on' : ''} onClick={() => setView('week')}>Week</button>
+          </div>
         </div>
       </header>
 
-      {data.user && (
-        <p className="mono dim small hint-line">
-          <Icon name="edit" size={13} stroke={1.8} />
-          Tap any class to swap, replace or cancel it.
-        </p>
-      )}
+      <div className="day-pills">
+        {days.map((d) => (
+          <button key={d} className={`day-pill ${view === 'day' && d === selected ? 'on' : ''}`} onClick={() => pick(d)}>
+            <span className="day-pill-name">{DAY_NAMES[weekdayIndex(d)!].slice(0, 3)}</span>
+            <span className="day-pill-date">{parseISO(d).getDate()}</span>
+          </button>
+        ))}
+      </div>
 
-      <div className="week-scroll">
-        <div className="week">
-          <div className="week-head mono" />
-          {days.map((d) => (
-            <div key={d} className={`week-head mono ${d === today ? 'is-today' : ''}`}>
-              <span>{DAY_NAMES[weekdayIndex(d)!].slice(0, 3).toUpperCase()}</span>
-              <span className="dim">{parseISO(d).getDate()}</span>
-            </div>
-          ))}
-
-          {rows.map((p) => {
-            const cells = days.map((d) => slotsFor(d).find((s) => s.period.n === p.n))
-            // The 9th period only exists on Wednesday; hide the row if nothing uses it.
-            if (cells.every((c) => !c)) return null
-            return (
-              <div key={p.n} className="week-row" style={{ display: 'contents' }}>
-                <div className="period-cell mono">
-                  <span className="period-n">{p.n}</span>
-                  <span className="dim xsmall">{p.start}</span>
-                </div>
-                {days.map((d, i) => {
-                  const slot = cells[i]
-                  if (!slot) return <div key={d} className="class-cell empty-cell" />
-                  const changed = !!slot.change
-                  const cancelled = slot.subject === null
-                  const color = slot.subject ? subjectColor(slot.subject) : 'var(--dim)'
-                  const body = (
-                    <>
-                      <span className="class-name" style={{ color }}>{slot.subject ?? 'Cancelled'}</span>
-                      {changed && (
-                        <span className="class-was mono">
-                          {slot.change?.swapped_with ? `↔ P${slot.change.swapped_with}` : `was ${slot.original ?? '—'}`}
-                        </span>
-                      )}
-                    </>
-                  )
-                  const cls = `class-cell ${changed ? 'changed' : ''} ${cancelled ? 'cancelled' : ''} ${d === today ? 'today-col' : ''}`
-                  return data.user ? (
-                    <button key={d} className={cls} onClick={() => setEditing({ date: d, period: p.n })}>{body}</button>
-                  ) : (
-                    <div key={d} className={cls}>{body}</div>
-                  )
-                })}
-              </div>
-            )
-          })}
+      <div className="section-heading" style={{ marginTop: 18 }}>
+        <div className="section-heading-left">
+          <h2>{view === 'day' ? fmtLong(selected) : thisWeek ? 'This week' : `Week of ${fmtTag(weekStart)}`}</h2>
+        </div>
+        <div className="head-actions">
+          {!thisWeek && (
+            <button className="btn-quiet" onClick={() => { setWeekStart(mondayOf(today)); setSelected(today) }}>This week</button>
+          )}
+          <button className="icon-btn" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="Previous week"><Icon name="left" /></button>
+          <button className="icon-btn" onClick={() => setWeekStart(addDays(weekStart, 7))} aria-label="Next week"><Icon name="right" /></button>
         </div>
       </div>
 
+      {data.user && (
+        <p className="hint-line">
+          <Icon name="edit" size={14} stroke={1.8} />
+          Tap a class to swap, replace or cancel it.
+        </p>
+      )}
+
+      {view === 'day' ? (
+        <DayList date={selected} data={data} onEdit={(period) => setEditing({ date: selected, period })} />
+      ) : (
+        <WeekGrid days={days} today={today} slotsFor={slotsFor} canEdit={!!data.user} onEdit={(date, period) => setEditing({ date, period })} />
+      )}
+
       {weekChanges.length > 0 && (
         <section className="stack changes-list">
-          <SectionLabel right={String(weekChanges.length).padStart(2, '0')}>CHANGES THIS WEEK</SectionLabel>
+          <SectionHeading count={weekChanges.length}>Changes this week</SectionHeading>
           {days.filter((d) => weekChanges.some((c) => c.date === d)).map((d) => (
             <div key={d} className="card">
-              <div className="mono small muted">{fmtTag(d)}</div>
-              {slotsFor(d).filter((s) => s.change).map((s) => (
-                <div key={s.period.n} className="change-line">
-                  <span className="mono dim">P{s.period.n}</span>
-                  <span>
-                    {s.original ?? 'free'} → <strong>{s.subject ?? 'cancelled'}</strong>
-                    {s.change?.swapped_with ? ` (swapped with period ${s.change.swapped_with})` : ''}
-                  </span>
-                </div>
-              ))}
+              <div className="card-body">
+                <div className="due">{fmtLong(d)}</div>
+                {slotsFor(d).filter((s) => s.change).map((s) => (
+                  <div key={s.period.n} className="change-line">
+                    <span className="faint">Period {s.period.n}</span>
+                    <span>
+                      {s.original ?? 'free'} → <strong>{s.subject ?? 'cancelled'}</strong>
+                      {s.change?.swapped_with ? ` (swapped with period ${s.change.swapped_with})` : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </section>
       )}
 
-      {editing && (
-        <SlotEditor
-          date={editing.date}
-          period={editing.period}
-          data={data}
-          onClose={() => setEditing(null)}
-        />
-      )}
+      {editing && <SlotEditor date={editing.date} period={editing.period} data={data} onClose={() => setEditing(null)} />}
     </>
+  )
+}
+
+function DayList({ date, data, onEdit }: { date: string; data: AppData; onEdit: (period: number) => void }) {
+  const slots = daySlots(date, data.timetable, data.changes)
+  if (slots.length === 0) return <div className="empty" style={{ marginTop: 16 }}>No classes on this day.</div>
+
+  return (
+    <div className="slots">
+      {slots.map((s) => {
+        const color = s.subject ? subjectColor(s.subject) : 'var(--line)'
+        const body = (
+          <>
+            <span className="slot-time">
+              <span className="slot-start">{s.period.start}</span>
+              <span className="slot-end">{s.period.end}</span>
+            </span>
+            <span className="slot-bar" style={{ background: color }} />
+            <span className="slot-main">
+              <span className="slot-subject">{s.subject ?? 'Cancelled'}</span>
+              {s.change && (
+                <span className="slot-badge">
+                  <Icon name="swap" size={12} stroke={2} />
+                  {s.change.swapped_with ? `Swapped with period ${s.change.swapped_with}` : `Was ${s.original ?? 'free'}`}
+                </span>
+              )}
+            </span>
+            <span className="slot-period">Period {s.period.n}</span>
+          </>
+        )
+        const cls = `slot ${s.change ? 'changed' : ''} ${s.subject === null ? 'cancelled' : ''}`
+        return data.user ? (
+          <button key={s.period.n} className={cls} onClick={() => onEdit(s.period.n)}>{body}</button>
+        ) : (
+          <div key={s.period.n} className={cls}>{body}</div>
+        )
+      })}
+    </div>
+  )
+}
+
+function WeekGrid({
+  days, today, slotsFor, canEdit, onEdit,
+}: {
+  days: string[]
+  today: string
+  slotsFor: (iso: string) => ReturnType<typeof daySlots>
+  canEdit: boolean
+  onEdit: (date: string, period: number) => void
+}) {
+  return (
+    <div className="week-scroll">
+      <div className="week">
+        <div className="week-head" />
+        {days.map((d) => (
+          <div key={d} className={`week-head ${d === today ? 'is-today' : ''}`}>
+            <span>{DAY_NAMES[weekdayIndex(d)!].slice(0, 3)}</span>
+            <span className="faint">{parseISO(d).getDate()}</span>
+          </div>
+        ))}
+
+        {PERIODS.map((p) => {
+          const cells = days.map((d) => slotsFor(d).find((s) => s.period.n === p.n))
+          // The 9th period only exists on Wednesday; hide the row when nothing uses it.
+          if (cells.every((c) => !c)) return null
+          return (
+            <div key={p.n} style={{ display: 'contents' }}>
+              <div className="week-period">
+                <span className="week-period-n">{p.n}</span>
+                <span className="week-period-time">{p.start}</span>
+              </div>
+              {days.map((d, i) => {
+                const slot = cells[i]
+                if (!slot) return <div key={d} className="week-cell empty-cell" />
+                const cls = `week-cell ${slot.change ? 'changed' : ''}`
+                const body = (
+                  <>
+                    <span className="week-cell-name" style={{ color: slot.subject ? subjectColor(slot.subject) : 'var(--faint)' }}>
+                      {slot.subject ?? 'Cancelled'}
+                    </span>
+                    {slot.change && (
+                      <span className="week-cell-note">
+                        {slot.change.swapped_with ? `Swap · P${slot.change.swapped_with}` : `Was ${slot.original ?? 'free'}`}
+                      </span>
+                    )}
+                  </>
+                )
+                return canEdit ? (
+                  <button key={d} className={cls} onClick={() => onEdit(d, p.n)}>{body}</button>
+                ) : (
+                  <div key={d} className={cls}>{body}</div>
+                )
+              })}
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -143,10 +221,7 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
   const wd = weekdayIndex(date)!
   const slots = daySlots(date, data.timetable, data.changes)
   const slot = slots.find((s) => s.period.n === period)
-  const known = useMemo(
-    () => [...new Set(data.timetable.flat().filter(Boolean) as string[])].sort(),
-    [data.timetable],
-  )
+  const known = useMemo(() => [...new Set(data.timetable.flat().filter(Boolean) as string[])].sort(), [data.timetable])
   const others = slots.filter((s) => s.period.n !== period)
 
   useEffect(() => {
@@ -175,7 +250,7 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
           ])
         }
       } else if (mode === 'replace') {
-        if (!subject.trim()) throw new Error('Type the new subject.')
+        if (!subject.trim()) throw new Error('Choose or type the new subject.')
         if (forever) {
           grid[wd][period - 1] = subject.trim()
           await store.saveTimetable(grid)
@@ -220,10 +295,10 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
       <div className="sheet" role="dialog" aria-label="Change class" onClick={(e) => e.stopPropagation()}>
         <div className="sheet-head">
           <div className="stack gap-sm">
-            <span className="mono dim small">{fmtTag(date)} · PERIOD {period} · {PERIODS[period - 1].start}–{PERIODS[period - 1].end}</span>
+            <span className="sheet-sub">{fmtLong(date)} · Period {period} · {PERIODS[period - 1].start}–{PERIODS[period - 1].end}</span>
             <strong className="sheet-title">{slot?.subject ?? 'No class'}</strong>
           </div>
-          <button className="icon-btn ghost" onClick={onClose} aria-label="Close"><Icon name="close" size={20} stroke={2} /></button>
+          <button className="icon-btn quiet" onClick={onClose} aria-label="Close"><Icon name="close" size={20} stroke={2} /></button>
         </div>
 
         <div className="seg seg-3" role="radiogroup" aria-label="What to do">
@@ -236,16 +311,16 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
 
         {mode === 'swap' && (
           <div className="field">
-            <span className="field-label mono">SWAP WITH</span>
+            <span className="field-label">Swap with</span>
             <div className="chips">
               {others.map((s) => (
                 <button
                   key={s.period.n}
-                  className={`chip mono ${withPeriod === s.period.n ? 'on' : ''}`}
+                  className={`chip ${withPeriod === s.period.n ? 'on' : ''}`}
                   aria-pressed={withPeriod === s.period.n}
                   onClick={() => setWithPeriod(s.period.n)}
                 >
-                  P{s.period.n} {s.subject ?? 'free'}
+                  Period {s.period.n} · {s.subject ?? 'free'}
                 </button>
               ))}
             </div>
@@ -254,10 +329,10 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
 
         {mode === 'replace' && (
           <div className="field">
-            <span className="field-label mono">NEW SUBJECT</span>
+            <span className="field-label">New subject</span>
             <div className="chips">
               {known.map((s) => (
-                <button key={s} className={`chip mono ${subject === s ? 'on' : ''}`} aria-pressed={subject === s} onClick={() => setSubject(s)}>
+                <button key={s} className={`chip ${subject === s ? 'on' : ''}`} aria-pressed={subject === s} onClick={() => setSubject(s)}>
                   <span className="swatch" style={{ background: subjectColor(s) }} />{s}
                 </button>
               ))}
@@ -266,15 +341,15 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
           </div>
         )}
 
-        {mode === 'cancel' && <p className="lead small">No class in this period — the students get a free period.</p>}
+        {mode === 'cancel' && <p className="lead">No class this period — the students get a free period.</p>}
 
         <div className="field">
-          <span className="field-label mono">APPLY TO</span>
+          <span className="field-label">Apply to</span>
           <div className="seg seg-2">
             <button className={!forever ? 'on' : ''} onClick={() => setForever(false)}>Just this day</button>
             <button className={forever ? 'on' : ''} onClick={() => setForever(true)}>Every week</button>
           </div>
-          <span className="mono dim xsmall">
+          <span className="small muted">
             {forever ? 'Changes the normal timetable from now on.' : `Only ${fmtTag(date)}. Next week stays normal.`}
           </span>
         </div>

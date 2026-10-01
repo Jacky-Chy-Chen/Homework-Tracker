@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
-import { toISO, todayISO } from '../lib/dates'
+import { fmtLong, toISO, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
 import Icon from './Icon'
 import type { Item } from '../lib/store'
 
-const WEEK = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-const MAX_BARS = 3
+const WEEK = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const MAX_DOTS = 3
 
 interface Props {
   month: Date
@@ -14,7 +14,7 @@ interface Props {
   onSelect?: (iso: string) => void
 }
 
-/** Monday-first month grid: a colored bar per item due, a dot for tests/projects. */
+/** Monday-first month grid: a star on test days, otherwise a dot per item due. */
 export default function MonthGrid({ month, items, selected, onSelect }: Props) {
   const today = todayISO()
 
@@ -37,31 +37,28 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
 
   return (
     <div className="month-grid">
-      {WEEK.map((w) => (
-        <div key={w} className="month-head mono">{w}</div>
+      {WEEK.map((w, i) => (
+        <div key={i} className="month-head">{w}</div>
       ))}
       {cells.map(({ iso, day, inMonth }) => {
         const list = byDue.get(iso) ?? []
-        const flag = list.some((i) => i.type === 'test') ? 'test' : list.some((i) => i.type === 'project') ? 'project' : null
+        const hasTest = list.some((i) => i.type === 'test')
         const cls = ['month-cell', inMonth ? '' : 'out', iso === selected ? 'selected' : '', onSelect ? '' : 'static']
         const body = (
           <>
-            <span className="month-cell-top">
-              <span className={`month-num mono ${iso === today ? 'today' : ''}`}>{day}</span>
-              {flag === 'test' ? (
-                <span className="flag-star" title="Test"><Icon name="star" size={13} stroke={1.5} /></span>
-              ) : flag ? (
-                <span className="flag flag-project" />
-              ) : null}
-            </span>
-            <span className="bars">
-              {list.slice(0, MAX_BARS).map((i) => (
-                <span key={i.id} className="bar" style={{ background: subjectColor(i.subject) }} />
-              ))}
+            <span className={`month-num ${iso === today ? 'today' : ''}`}>{day}</span>
+            <span className="marks">
+              {hasTest ? (
+                <span className="mark-star"><Icon name="star" size={11} stroke={0} /></span>
+              ) : (
+                list.slice(0, MAX_DOTS).map((i) => (
+                  <span key={i.id} className="mark-dot" style={{ background: subjectColor(i.subject) }} />
+                ))
+              )}
             </span>
           </>
         )
-        const label = `${iso}: ${list.length} item${list.length === 1 ? '' : 's'} due`
+        const label = `${fmtLong(iso)}: ${list.length} item${list.length === 1 ? '' : 's'} due`
         return onSelect ? (
           <button key={iso} className={cls.join(' ')} onClick={() => onSelect(iso)} aria-label={label} aria-pressed={iso === selected}>
             {body}
@@ -76,10 +73,15 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
 
 export function Legend() {
   return (
-    <div className="legend mono">
-      <span><span className="flag-star"><Icon name="star" size={13} stroke={1.5} /></span>TEST</span>
-      <span><span className="flag flag-project" />PROJECT</span>
-      <span><span className="bar legend-bar" />ITEM, BY SUBJECT</span>
+    <div className="legend">
+      <span>
+        <span className="mark-star"><Icon name="star" size={11} stroke={0} /></span>
+        Test day
+      </span>
+      <span>
+        <span className="mark-dot" style={{ background: 'var(--muted)' }} />
+        One item due, by subject
+      </span>
     </div>
   )
 }

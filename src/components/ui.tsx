@@ -1,22 +1,29 @@
 import { useState } from 'react'
-import { daysBetween, fmtTag, relative, todayISO } from '../lib/dates'
-import { subjectColor } from '../lib/homework'
+import { dateTile, daysBetween, fmtDue, fmtTag, relative, todayISO } from '../lib/dates'
+import { subjectColor, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type Material } from '../lib/store'
 import { toggleDone, useDone } from '../lib/done'
 import { setTheme, useTheme } from '../lib/theme'
 import Icon from './Icon'
 
-export const pad2 = (n: number) => String(n).padStart(2, '0')
+export const APP_NAME = 'Classboard'
+export const CLASS_LABEL = 'G8 (5)'
 
-export function Wordmark({ big }: { big?: boolean }) {
+export function Wordmark({ big, subtitle = CLASS_LABEL }: { big?: boolean; subtitle?: string }) {
   return (
-    <span className={`wordmark mono ${big ? 'big' : ''}`}>
-      <span className="dim">~/</span>homework
+    <span className={`wordmark ${big ? 'big' : ''}`}>
+      <span className="mark" aria-hidden="true">
+        <Icon name="check" size={big ? 28 : 18} stroke={2.2} />
+      </span>
+      <span className="wordmark-text">
+        <span className="wordmark-name">{APP_NAME}</span>
+        {subtitle && <span className="wordmark-sub">{subtitle}</span>}
+      </span>
     </span>
   )
 }
 
-/** Sun/moon button. `row` is the sidebar version with a text label. */
+/** Sun/moon switch. `row` is the sidebar version with a text label. */
 export function ThemeToggle({ row }: { row?: boolean }) {
   const theme = useTheme()
   const next = theme === 'dark' ? 'light' : 'dark'
@@ -28,34 +35,42 @@ export function ThemeToggle({ row }: { row?: boolean }) {
       {next === 'light' ? 'Light mode' : 'Dark mode'}
     </button>
   ) : (
-    <button className="icon-btn ghost theme-btn" onClick={() => setTheme(next)} aria-label={label} title={label}>
+    <button className="icon-btn quiet" onClick={() => setTheme(next)} aria-label={label} title={label}>
       {icon}
     </button>
   )
 }
 
-/** The small bar above each page: wordmark on the left, a label and the theme toggle on the right. */
-export function TopBar({ label, editor }: { label?: string; editor?: boolean }) {
+/** Wordmark on the left; the editor badge or a sign-in button on the right. */
+export function TopBar({ editor }: { editor?: boolean }) {
   return (
     <div className="topbar">
       <Wordmark />
-      <span className="topbar-right">
+      <div className="topbar-right">
         {editor ? (
-          <span className="mono topbar-label accent"><span className="dot" />EDITOR</span>
+          <span className="pill-editor">
+            <span className="dot" />
+            Editor
+          </span>
         ) : (
-          label && <span className="mono topbar-label">{label}</span>
+          <a className="icon-btn" href="#/post" aria-label="Sign in to post">
+            <Icon name="user" size={19} stroke={1.8} />
+          </a>
         )}
         <ThemeToggle />
-      </span>
+      </div>
     </div>
   )
 }
 
-export function SectionLabel({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
+export function SectionHeading({ children, count, action }: { children: React.ReactNode; count?: number; action?: React.ReactNode }) {
   return (
-    <div className="section-label mono">
-      <span>// {children}</span>
-      {right !== undefined && <span>{right}</span>}
+    <div className="section-heading">
+      <div className="section-heading-left">
+        <h2>{children}</h2>
+        {count !== undefined && <span className="count">{count}</span>}
+      </div>
+      {action}
     </div>
   )
 }
@@ -63,7 +78,7 @@ export function SectionLabel({ children, right }: { children: React.ReactNode; r
 export function SubjectLabel({ subject }: { subject: string }) {
   const color = subjectColor(subject)
   return (
-    <span className="subject-label mono" style={{ '--c': color } as React.CSSProperties}>
+    <span className="subject-label" style={{ '--c': color } as React.CSSProperties}>
       <span className="swatch" style={{ background: color }} />
       {subject}
     </span>
@@ -72,107 +87,111 @@ export function SubjectLabel({ subject }: { subject: string }) {
 
 export function TypeTag({ type }: { type: Item['type'] }) {
   if (type === 'daily') return null
-  return <span className={`tag mono tag-${type}`}>{type === 'test' ? 'TEST' : type === 'project' ? 'PROJECT' : 'OTHER'}</span>
+  return <span className={`tag tag-${type}`}>{TYPE_LABEL[type]}</span>
 }
 
-function ItemExtras({ item, files = [] }: { item: Item; files?: Material[] }) {
+function Attachments({ files }: { files: Material[] }) {
   return (
     <>
-      {item.notes && <div className="card-notes">{item.notes}</div>}
       {files.map((f) => (
-        <a key={f.id} className="card-link mono" href={store.fileUrl(f)} target="_blank" rel="noreferrer">
+        <a key={f.id} className="attachment" href={store.fileUrl(f)} target="_blank" rel="noreferrer">
           <Icon name="folder" size={14} />
           {f.title}
         </a>
       ))}
-      {item.link && (
-        <a className="card-link mono" href={item.link} target="_blank" rel="noreferrer">
-          <Icon name="link" size={14} />
-          {item.link.replace(/^https?:\/\//, '').slice(0, 40)}
-        </a>
-      )}
     </>
   )
 }
 
-/** Card for one item: subject + due date on top, then the title.
-    `tick` adds the personal done checkbox (saved in this browser only). */
-export function ItemCard({ item, files, tick }: { item: Item; files?: Material[]; tick?: boolean }) {
+/** Homework card: subject, due date, title, and the student's own tick. */
+export function ItemCard({ item, files = [], tick }: { item: Item; files?: Material[]; tick?: boolean }) {
   const done = useDone().has(item.id)
+  const today = todayISO()
   return (
     <div className={`card ${tick && done ? 'is-done' : ''}`}>
-      <div className="card-top">
-        <span className="card-top-left">
-          <TypeTag type={item.type} />
-          <SubjectLabel subject={item.subject} />
-        </span>
-        <span className="mono muted small">DUE {fmtTag(item.due_date)}</span>
-      </div>
-      <div className="card-main">
-        {tick && (
-          <button
-            className={`tick ${done ? 'on' : ''}`}
-            onClick={() => toggleDone(item.id)}
-            role="checkbox"
-            aria-checked={done}
-            aria-label={`Mark "${item.title}" as done`}
-          >
-            {done && <Icon name="check" size={14} stroke={3} />}
-          </button>
-        )}
+      {tick && (
+        <button
+          className={`tick ${done ? 'on' : ''}`}
+          onClick={() => toggleDone(item.id)}
+          role="checkbox"
+          aria-checked={done}
+          aria-label={`Mark "${item.title}" as done`}
+        >
+          {done && <Icon name="check" size={13} stroke={3} />}
+        </button>
+      )}
+      <div className="card-body">
+        <div className="card-top">
+          <span className="card-top-left">
+            <TypeTag type={item.type} />
+            <SubjectLabel subject={item.subject} />
+          </span>
+          <span className="due">{fmtDue(today, item.due_date)}</span>
+        </div>
         <div className="card-title">{item.title}</div>
+        {item.notes && <div className="card-notes">{item.notes}</div>}
+        <Attachments files={files} />
+        {item.link && (
+          <a className="attachment" href={item.link} target="_blank" rel="noreferrer">
+            <Icon name="link" size={14} />
+            {item.link.replace(/^https?:\/\//, '').slice(0, 36)}
+          </a>
+        )}
       </div>
-      <ItemExtras item={item} files={files} />
     </div>
   )
 }
 
-/** Countdown timeline row used for projects and tests coming up. */
-export function TimelineItem({ item, from, files }: { item: Item; from: string; files?: Material[] }) {
+/** Card with a date tile, used for tests and projects that are still ahead. */
+export function UpcomingCard({ item, from, files = [] }: { item: Item; from: string; files?: Material[] }) {
+  const { month, day } = dateTile(item.due_date)
   const days = daysBetween(from, item.due_date)
   return (
-    <div className="tl-row">
-      <div className="tl-rail">
-        <span className={`tl-count mono ${item.type === 'test' ? 'is-test' : 'is-accent'}`}>{days}</span>
-        <span className="tl-unit mono">{days === 1 ? 'DAY' : 'DAYS'}</span>
-        <span className="tl-line" />
+    <div className={`card upcoming-card type-${item.type}`}>
+      <div className="date-tile">
+        <span className="date-tile-month">{month}</span>
+        <span className="date-tile-day">{day}</span>
       </div>
-      <div className="card tl-card">
+      <div className="card-body">
         <div className="card-top-left">
           <TypeTag type={item.type} />
           <SubjectLabel subject={item.subject} />
         </div>
         <div className="card-title">{item.title}</div>
-        <ItemExtras item={item} files={files} />
-        <div className="mono dim small">DUE {fmtTag(item.due_date)}</div>
+        {item.notes && <div className="card-notes">{item.notes}</div>}
+        <Attachments files={files} />
+        <div className="card-foot">
+          Due {fmtTag(item.due_date)} · {days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`}
+        </div>
       </div>
     </div>
   )
 }
 
-/** Compact row with edit/delete, for the editor's list. */
+/** Compact row with edit and delete, for the editor's lists. */
 export function ItemRow({ item, onEdit, onDelete }: { item: Item; onEdit: () => void; onDelete: () => void }) {
   const today = todayISO()
-  const due = item.due_date === today ? 'DUE TODAY' : item.due_date < today ? `DUE ${relative(today, item.due_date).toUpperCase()}` : fmtTag(item.due_date)
-  const meta = [item.subject.toUpperCase(), item.type === 'daily' ? null : item.type.toUpperCase(), due].filter(Boolean).join(' · ')
+  const due = item.due_date === today ? 'due today' : item.due_date < today ? relative(today, item.due_date) : fmtDue(today, item.due_date).toLowerCase()
+  const meta = [item.subject, item.type === 'daily' ? null : TYPE_LABEL[item.type].toLowerCase(), due].filter(Boolean).join(' · ')
   return (
     <div className="row-item">
       <span className="swatch" style={{ background: subjectColor(item.subject) }} />
       <div className="row-item-text">
         <span className="row-item-title">{item.title}</span>
-        <span className="mono muted xsmall">{meta}</span>
+        <span className="row-item-meta">{meta}</span>
       </div>
-      <button className="icon-btn ghost" onClick={onEdit} aria-label={`Edit ${item.title}`}>
+      <button className="icon-btn quiet" onClick={onEdit} aria-label={`Edit ${item.title}`}>
         <Icon name="edit" size={17} stroke={1.8} />
       </button>
-      <button className="icon-btn ghost danger" onClick={onDelete} aria-label={`Delete ${item.title}`}>
+      <button className="icon-btn quiet danger" onClick={onDelete} aria-label={`Delete ${item.title}`}>
         <Icon name="trash" size={17} stroke={1.8} />
       </button>
     </div>
   )
 }
 
-export function MessageConsole({ text, weekText, reminders }: { text: string; weekText: string; reminders: number }) {
+/** The message the editor copies into the class group. */
+export function MessageCard({ text, weekText, reminders }: { text: string; weekText: string; reminders: number }) {
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
   const [span, setSpan] = useState<'day' | 'week'>('day')
   const shown = span === 'day' ? text : weekText
@@ -203,23 +222,33 @@ export function MessageConsole({ text, weekText, reminders }: { text: string; we
 
   return (
     <section className="stack">
-      <SectionLabel right="AUTO-GENERATED">GROUP MESSAGE</SectionLabel>
-      <div className="console">
-        <div className="console-head mono">
-          <span className="span-switch">
-            <button className={span === 'day' ? 'on' : ''} onClick={() => setSpan('day')}>TODAY</button>
-            <button className={span === 'week' ? 'on' : ''} onClick={() => setSpan('week')}>NEXT WEEK</button>
-          </span>
-          <span>{span === 'week' ? 'WEEK PREVIEW' : reminders === 0 ? 'NO REMINDERS' : `${reminders} REMINDER${reminders === 1 ? '' : 'S'} ADDED`}</span>
+      <SectionHeading
+        action={
+          <div className="switch">
+            <button className={span === 'day' ? 'on' : ''} onClick={() => setSpan('day')}>Today</button>
+            <button className={span === 'week' ? 'on' : ''} onClick={() => setSpan('week')}>Week</button>
+          </div>
+        }
+      >
+        Message for the group
+      </SectionHeading>
+
+      <div className="message-card">
+        <div className="message-head">
+          <span className="message-chat-icon"><Icon name="chat" size={13} stroke={2} /></span>
+          <span className="message-head-label">Preview</span>
+          {span === 'day' && reminders > 0 && (
+            <span className="pill-warn">{reminders} reminder{reminders === 1 ? '' : 's'} added</span>
+          )}
         </div>
-        <textarea className="console-body mono" readOnly value={shown} rows={shown.split('\n').length} aria-label="Group chat message" />
-      </div>
-      <button className="btn-primary" onClick={copy}>
-        <Icon name={status === 'copied' ? 'check' : 'copy'} size={18} stroke={2.1} />
-        {status === 'copied' ? 'Copied' : 'Copy message'}
-      </button>
-      <div className="mono dim small center">
-        {status === 'failed' ? "Couldn't copy automatically — long-press the text above." : 'Paste straight into the class group'}
+        <textarea className="message-body" readOnly value={shown} rows={shown.split('\n').length} aria-label="Message for the class group" />
+        <button className="btn-primary" onClick={copy}>
+          <Icon name={status === 'copied' ? 'check' : 'copy'} size={18} stroke={2.1} />
+          {status === 'copied' ? 'Copied' : 'Copy message'}
+        </button>
+        <p className="message-hint">
+          {status === 'failed' ? "Couldn't copy automatically — long-press the text to copy it." : 'Paste it straight into the class group'}
+        </p>
       </div>
     </section>
   )

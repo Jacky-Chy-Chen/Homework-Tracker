@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid from '../components/MonthGrid'
-import { ItemCard, MessageConsole, pad2, SectionLabel, TimelineItem, TopBar } from '../components/ui'
+import { ItemCard, MessageCard, SectionHeading, TopBar, UpcomingCard } from '../components/ui'
 import { addDays, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
 import { assignedOn, buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 import { changeLines, daySlots } from '../lib/schedule'
@@ -25,20 +25,18 @@ export default function Today({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar label="CLASS FEED" editor={!!data.user} />
+      <TopBar editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">
-          <div className="eyebrow mono">
+          <div className="eyebrow">
             {fmtEyebrow(day)}
-            {!isToday && <span className="eyebrow-rel"> · {relative(today, day).toUpperCase()}</span>}
+            {!isToday && ` · ${relative(today, day)}`}
           </div>
-          <h1>{isToday ? "Today's homework" : fmtLong(day)}</h1>
+          <h1>{isToday ? 'Today' : fmtLong(day)}</h1>
         </div>
         <div className="head-actions">
-          {!isToday && (
-            <button className="btn-ghost mono" onClick={() => setDay(today)}>TODAY</button>
-          )}
+          {!isToday && <button className="btn-quiet" onClick={() => setDay(today)}>Today</button>}
           <button className="icon-btn" onClick={() => setDay(addDays(day, -1))} aria-label="Previous day">
             <Icon name="left" />
           </button>
@@ -48,27 +46,27 @@ export default function Today({ data }: { data: AppData }) {
           {data.user && (
             <a href="#/post" className="btn-primary desktop-only">
               <Icon name="plus" size={16} stroke={2.4} />
-              New entry
+              Add homework
             </a>
           )}
         </div>
       </header>
 
       {!data.loading && (
-        <div className="status mono">
-          <span><span className="dot" />{posted.length} new</span>
-          <span><span className="dot dot-test" />{upcoming.length} due within {REMINDER_DAYS} days</span>
+        <div className="status">
+          <span><span className="dot dot-accent" />{posted.length} {isToday ? 'new today' : 'posted'}</span>
+          <span><span className="dot dot-warn" />{upcoming.length} coming up</span>
         </div>
       )}
 
       <div className="today-grid">
         <div className="col">
           <section className="stack order-1">
-            <SectionLabel right={pad2(posted.length)}>{isToday ? 'NEW TODAY' : 'POSTED THIS DAY'}</SectionLabel>
+            <SectionHeading count={posted.length}>Homework</SectionHeading>
             {data.loading ? (
-              <div className="empty mono">Loading…</div>
+              <div className="empty">Loading…</div>
             ) : posted.length === 0 ? (
-              <div className="empty mono">No homework posted for this day.</div>
+              <div className="empty">No homework posted for this day.</div>
             ) : (
               posted.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)
             )}
@@ -76,10 +74,10 @@ export default function Today({ data }: { data: AppData }) {
 
           {data.user && !data.loading && (
             <div className="order-3">
-              <MessageConsole
+              <MessageCard
                 text={buildMessage(data.items, day, swaps, fmtTag(nextDay))}
                 weekText={buildWeekMessage(data.items, nextMonday)}
-                reminders={upcoming.length}
+                reminders={upcoming.length + swaps.length}
               />
             </div>
           )}
@@ -88,21 +86,21 @@ export default function Today({ data }: { data: AppData }) {
         <div className="col">
           <section className="card mini-cal desktop-only">
             <div className="mini-cal-head">
-              <span className="mini-cal-title">
-                {month.toLocaleDateString('en-US', { month: 'long' })}
-                <span className="mono muted small">{month.getFullYear()}</span>
-              </span>
-              <a href="#/calendar" className="mono accent small">OPEN CALENDAR →</a>
+              <span className="mini-cal-title">{month.toLocaleDateString('en-GB', { month: 'long' })}</span>
+              <a href="#/calendar" className="section-link">Open calendar</a>
             </div>
             <MonthGrid month={month} items={data.items.filter(onCalendar)} />
           </section>
 
           {upcoming.length > 0 && (
             <section className="stack order-2">
-              <SectionLabel right={pad2(upcoming.length)}>COMING UP · {REMINDER_DAYS} DAYS</SectionLabel>
-              <div className="timeline">
-                {upcoming.map((i) => <TimelineItem key={i.id} item={i} from={day} files={filesFor(i.id)} />)}
-              </div>
+              <SectionHeading
+                count={upcoming.length}
+                action={<a href="#/calendar" className="section-link">Calendar</a>}
+              >
+                Coming up
+              </SectionHeading>
+              {upcoming.map((i) => <UpcomingCard key={i.id} item={i} from={day} files={filesFor(i.id)} />)}
             </section>
           )}
         </div>
@@ -110,3 +108,5 @@ export default function Today({ data }: { data: AppData }) {
     </>
   )
 }
+
+export { REMINDER_DAYS }

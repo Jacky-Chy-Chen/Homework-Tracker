@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
-import { ItemCard, pad2, SectionLabel, TopBar } from '../components/ui'
+import { ItemCard, SectionHeading, TopBar } from '../components/ui'
 import { onCalendar } from '../lib/homework'
-import { fmtTag, parseISO, todayISO } from '../lib/dates'
+import { fmtLong, parseISO, todayISO } from '../lib/dates'
 
 export default function Calendar({ data }: { data: AppData }) {
   const today = todayISO()
@@ -32,17 +32,15 @@ export default function Calendar({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar label="CALENDAR" editor={!!data.user} />
+      <TopBar editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">
-          <div className="eyebrow mono">{month.getFullYear()}</div>
-          <h1>{month.toLocaleDateString('en-US', { month: 'long' })}</h1>
+          <div className="eyebrow">{month.getFullYear()}</div>
+          <h1>{month.toLocaleDateString('en-GB', { month: 'long' })}</h1>
         </div>
         <div className="head-actions">
-          {!onThisMonth && (
-            <button className="btn-ghost mono" onClick={() => { select(today) }}>TODAY</button>
-          )}
+          {!onThisMonth && <button className="btn-quiet" onClick={() => select(today)}>Today</button>}
           <button className="icon-btn" onClick={() => shift(-1)} aria-label="Previous month">
             <Icon name="left" />
           </button>
@@ -54,18 +52,20 @@ export default function Calendar({ data }: { data: AppData }) {
 
       <div className="cal-layout">
         <div className="stack">
-          <div className="seg seg-2" role="radiogroup" aria-label="Show">
-            <button role="radio" aria-checked={!bigOnly} className={`mono ${!bigOnly ? 'on' : ''}`} onClick={() => setBigOnly(false)}>ALL</button>
-            <button role="radio" aria-checked={bigOnly} className={`mono ${bigOnly ? 'on' : ''}`} onClick={() => setBigOnly(true)}>PROJECTS + TESTS</button>
+          <div className="seg seg-2" role="radiogroup" aria-label="What to show">
+            <button role="radio" aria-checked={!bigOnly} className={!bigOnly ? 'on' : ''} onClick={() => setBigOnly(false)}>Everything</button>
+            <button role="radio" aria-checked={bigOnly} className={bigOnly ? 'on' : ''} onClick={() => setBigOnly(true)}>Tests &amp; projects</button>
           </div>
-          <MonthGrid month={month} items={shown} selected={selected} onSelect={select} />
-          <Legend />
+          <div className="card month-card">
+            <MonthGrid month={month} items={shown} selected={selected} onSelect={select} />
+            <Legend />
+          </div>
         </div>
 
         <section className="stack">
-          <SectionLabel right={pad2(dayItems.length)}>DUE {fmtTag(selected)}</SectionLabel>
+          <SectionHeading count={dayItems.length}>{fmtLong(selected)}</SectionHeading>
           {dayItems.length === 0 ? (
-            <div className="empty mono">Nothing due.</div>
+            <div className="empty">Nothing due.</div>
           ) : (
             dayItems.map((i) => <ItemCard key={i.id} item={i} files={data.materials.filter((m) => m.item_id === i.id)} tick />)
           )}

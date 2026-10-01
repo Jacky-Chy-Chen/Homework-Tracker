@@ -48,16 +48,32 @@ export const relative = (from: string, to: string) => {
   return n > 0 ? `in ${n} days` : `${-n} days ago`
 }
 
-const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-/** 'MON 21 SEP' — the mono date labels used across the UI. */
+/** 'Mon 21 Sep' — the short date shown on cards. */
 export const fmtTag = (iso: string) => {
   const d = parseISO(iso)
-  return `${WEEKDAYS[d.getDay()].toUpperCase()} ${d.getDate()} ${MONTHS[d.getMonth()]}`
+  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
 }
 
-/** 'FRI · 18 SEP 2026' */
+/** 'Thursday, 1 October 2026' */
 export const fmtEyebrow = (iso: string) => {
   const d = parseISO(iso)
-  return `${WEEKDAYS[d.getDay()].toUpperCase()} · ${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+/** How a due date reads on a card: 'Due tomorrow', 'Due Tue 6 Oct'. */
+export const fmtDue = (from: string, to: string) => {
+  const n = daysBetween(from, to)
+  if (n === 0) return 'Due today'
+  if (n === 1) return 'Due tomorrow'
+  if (n === -1) return 'Due yesterday'
+  if (n < 0) return `Was due ${fmtTag(to)}`
+  return `Due ${fmtTag(to)}`
+}
+
+/** The date tile on an upcoming card: { month: 'OCT', day: '5' }. */
+export const dateTile = (iso: string) => {
+  const d = parseISO(iso)
+  return { month: MONTHS[d.getMonth()].toUpperCase(), day: String(d.getDate()) }
 }

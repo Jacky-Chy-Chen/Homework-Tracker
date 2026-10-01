@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
-import { pad2, SectionLabel, TopBar } from '../components/ui'
+import { SectionHeading, TopBar } from '../components/ui'
 import { fmtTag } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
 import { store, type Material } from '../lib/store'
@@ -17,6 +17,7 @@ const opensInline = (m: Material) => /pdf|image\//.test(m.file_type) || /\.(pdf|
 
 export default function Materials({ data }: { data: AppData }) {
   const [open, setOpen] = useState(false)
+  // Subject filter chips sit above the list.
   const bySubject = useMemo(() => {
     const groups = new Map<string, Material[]>()
     for (const m of data.materials) groups.set(m.subject, [...(groups.get(m.subject) ?? []), m])
@@ -31,12 +32,12 @@ export default function Materials({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar label="MATERIALS" editor={!!data.user} />
+      <TopBar editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">
-          <div className="eyebrow mono">REVIEW SHEETS · NOTES · SLIDES</div>
-          <h1>Materials</h1>
+          <div className="eyebrow">Review sheets, notes, slides</div>
+          <h1>Files</h1>
         </div>
         {data.user && (
           <div className="head-actions">
@@ -49,30 +50,33 @@ export default function Materials({ data }: { data: AppData }) {
       </header>
 
       {data.materials.length === 0 ? (
-        <div className="empty mono materials-empty">
+        <div className="empty" style={{ marginTop: 24 }}>
           Nothing here yet.{data.user ? ' Upload a review sheet, notes or slides.' : ' Your teacher hasn’t added anything.'}
         </div>
       ) : (
         <div className="materials-layout">
           {bySubject.map(([subject, list]) => (
             <section key={subject} className="stack">
-              <SectionLabel right={pad2(list.length)}>
-                <span style={{ color: subjectColor(subject) }}>{subject.toUpperCase()}</span>
-              </SectionLabel>
+              <SectionHeading count={list.length}>
+                <span className="subject-label" style={{ '--c': subjectColor(subject) } as React.CSSProperties}>
+                  <span className="swatch" style={{ background: subjectColor(subject) }} />
+                  {subject}
+                </span>
+              </SectionHeading>
               <div className="row-list">
                 {list.map((m) => (
                   <div key={m.id} className="row-item material-row">
-                    <span className="file-kind mono">{kindOf(m)}</span>
+                    <span className="file-kind">{kindOf(m)}</span>
                     <div className="row-item-text">
                       <span className="row-item-title">{m.title}</span>
-                      <span className="mono muted xsmall">
+                      <span className="row-item-meta">
                         {fmtSize(m.file_size)} · {fmtTag(m.created_at.slice(0, 10))}
-                        {m.item_id && data.items.some((i) => i.id === m.item_id) && ` · FOR ${data.items.find((i) => i.id === m.item_id)!.title.toUpperCase()}`}
+                        {m.item_id && data.items.some((i) => i.id === m.item_id) && ` · for ${data.items.find((i) => i.id === m.item_id)!.title}`}
                       </span>
-                      {m.notes && <span className="card-notes small">{m.notes}</span>}
+                      {m.notes && <span className="card-notes">{m.notes}</span>}
                     </div>
                     <a
-                      className="icon-btn ghost"
+                      className="icon-btn quiet"
                       href={store.fileUrl(m)}
                       target="_blank"
                       rel="noreferrer"
@@ -82,7 +86,7 @@ export default function Materials({ data }: { data: AppData }) {
                       <Icon name={opensInline(m) ? 'arrow' : 'download'} size={18} stroke={1.9} />
                     </a>
                     {data.user && (
-                      <button className="icon-btn ghost danger" onClick={() => remove(m)} aria-label={`Delete ${m.title}`}>
+                      <button className="icon-btn quiet danger" onClick={() => remove(m)} aria-label={`Delete ${m.title}`}>
                         <Icon name="trash" size={17} stroke={1.8} />
                       </button>
                     )}
@@ -94,8 +98,8 @@ export default function Materials({ data }: { data: AppData }) {
         </div>
       )}
 
-      <p className="mono dim small hint-line">
-        In WeChat, PDFs and photos open straight away. Word and Excel files may need “open in browser”.
+      <p className="empty" style={{ marginTop: 26, textAlign: 'left' }}>
+        In WeChat, PDFs and photos open straight away. Word and Excel files may ask you to open them in a browser.
       </p>
 
       {open && <UploadSheet data={data} onClose={() => setOpen(false)} />}
@@ -145,12 +149,12 @@ function UploadSheet({ data, onClose }: { data: AppData; onClose: () => void }) 
     <div className="sheet-backdrop" onClick={onClose}>
       <form className="sheet" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="sheet-head">
-          <strong className="sheet-title">Upload material</strong>
-          <button type="button" className="icon-btn ghost" onClick={onClose} aria-label="Close"><Icon name="close" size={20} stroke={2} /></button>
+          <strong className="sheet-title">Upload a file</strong>
+          <button type="button" className="icon-btn quiet" onClick={onClose} aria-label="Close"><Icon name="close" size={20} stroke={2} /></button>
         </div>
 
         <div className="field">
-          <span className="field-label mono">FILE</span>
+          <span className="field-label">File</span>
           <input
             ref={fileRef}
             type="file"
@@ -159,21 +163,21 @@ function UploadSheet({ data, onClose }: { data: AppData; onClose: () => void }) 
             accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp,.zip"
           />
           <button type="button" className="file-drop" onClick={() => fileRef.current?.click()}>
-            <Icon name="upload" size={20} stroke={1.9} />
+            <span className="file-drop-icon"><Icon name="upload" size={18} stroke={1.9} /></span>
             <span>{file ? `${file.name} · ${fmtSize(file.size)}` : 'Choose a file (PDF, photo, Word, slides…)'}</span>
           </button>
         </div>
 
         <label className="field">
-          <span className="field-label mono">TITLE</span>
+          <span className="field-label">Title</span>
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Unit 2 review sheet" required />
         </label>
 
         <div className="field">
-          <span className="field-label mono">SUBJECT</span>
+          <span className="field-label">Subject</span>
           <div className="chips">
             {subjects.map((s) => (
-              <button type="button" key={s} className={`chip mono ${subject === s ? 'on' : ''}`} aria-pressed={subject === s} onClick={() => setSubject(s)}>
+              <button type="button" key={s} className={`chip ${subject === s ? 'on' : ''}`} aria-pressed={subject === s} onClick={() => setSubject(s)}>
                 <span className="swatch" style={{ background: subjectColor(s) }} />{s}
               </button>
             ))}
@@ -181,13 +185,13 @@ function UploadSheet({ data, onClose }: { data: AppData; onClose: () => void }) 
         </div>
 
         <label className="field">
-          <span className="field-label mono">NOTES <span className="dim">· OPTIONAL</span></span>
+          <span className="field-label">Notes <span className="faint">· optional</span></span>
           <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What it covers, how to use it…" />
         </label>
 
         {linkable.length > 0 && (
           <label className="field">
-            <span className="field-label mono">FOR A TEST OR PROJECT <span className="dim">· OPTIONAL</span></span>
+            <span className="field-label">For a test or project <span className="faint">· optional</span></span>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)}>
               <option value="">Not linked</option>
               {linkable.map((i) => (
@@ -198,7 +202,7 @@ function UploadSheet({ data, onClose }: { data: AppData; onClose: () => void }) 
         )}
 
         {err && <div className="alert error">{err}</div>}
-        {store.mode === 'demo' && <div className="mono dim xsmall">Demo mode keeps files in this browser only, under 1 MB each.</div>}
+        {store.mode === 'demo' && <div className="small muted">Demo mode keeps files in this browser only, under 1 MB each.</div>}
 
         <div className="form-actions">
           <button className="btn-primary" disabled={busy}>

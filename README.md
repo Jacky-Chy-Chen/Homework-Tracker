@@ -1,6 +1,6 @@
-# Homework Tracker
+# Classboard
 
-A homeroom homework board. One editor (the class rep or the teacher) adds each day's homework plus long-term projects
+A homeroom homework board for G8 (5). One editor (the class rep or the teacher) adds each day's homework plus long-term projects
 and tests; everyone else opens the link from the WeChat group to see today's homework and a
 calendar of what's coming up. The Today page also writes the daily group-chat message,
 with automatic reminders for projects/tests due in the next 14 days.
@@ -60,6 +60,6 @@ WeChat — pick a host classmates can actually open, then pin the link in the gr
 - `src/lib/schedule.ts` — bell times, the printed timetable, and how changes are applied
 - `src/pages/` — Today, Calendar, Schedule, Materials, Post (sign-in lives in Post)
 - `src/components/` — shared UI (cards, timeline, month grid, icons)
-- `src/styles.css` — the "Terminal Night" theme; colors are CSS variables at the top
+- `src/styles.css` — the theme; every colour is a CSS variable at the top, light and dark
 
-Fonts (Geist, Geist Mono) are bundled via `@fontsource` rather than Google Fonts, which is blocked in mainland China.
+The font (Plus Jakarta Sans) is bundled via `@fontsource` rather than Google Fonts, which is blocked in mainland China.

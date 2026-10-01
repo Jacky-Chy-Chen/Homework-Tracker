@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
-import { ItemRow, pad2, SectionLabel, ThemeToggle, TopBar, Wordmark } from '../components/ui'
+import { ItemRow, SectionHeading, ThemeToggle, TopBar, Wordmark } from '../components/ui'
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
 import { subjectColor, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type ItemType, type NewItem } from '../lib/store'
@@ -41,26 +41,26 @@ function SignIn({ onSignedIn }: { onSignedIn: (u: string | null) => void }) {
   return (
     <div className="signin">
       <div className="signin-top">
-        <a href="#/" className="icon-btn ghost signin-back" aria-label="Back to today's homework">
+        <a href="#/" className="icon-btn quiet" aria-label="Back to today's homework">
           <Icon name="left" size={20} stroke={2} />
         </a>
         <ThemeToggle />
       </div>
       <div className="signin-body">
         <div className="stack gap-lg">
-          <Wordmark big />
+          <Wordmark big subtitle="" />
           <div className="stack">
             <h1>Sign in to post</h1>
             <p className="lead">Only the people who post homework need an account. Everyone else can just read.</p>
           </div>
         </div>
-        <form className="stack" onSubmit={submit}>
+        <form className="signin-card" onSubmit={submit}>
           <label className="field">
-            <span className="field-label mono">EMAIL</span>
+            <span className="field-label">Email</span>
             <input type="email" autoComplete="username" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </label>
           <label className="field">
-            <span className="field-label mono">PASSWORD</span>
+            <span className="field-label">Password</span>
             <input type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </label>
           {err && <div className="alert error">{err}</div>}
@@ -70,7 +70,7 @@ function SignIn({ onSignedIn }: { onSignedIn: (u: string | null) => void }) {
           </button>
         </form>
       </div>
-      <div className="mono dim small center signin-foot">Read-only link for classmates · no login needed</div>
+      <p className="small faint center signin-foot">Classmates can read everything without signing in</p>
     </div>
   )
 }
@@ -173,15 +173,15 @@ function Editor({ data }: { data: AppData }) {
 
       <header className="page-head">
         <div className="page-head-text">
-          <div className="eyebrow mono">{editingId ? 'EDITING' : 'NEW ENTRY'}</div>
-          <h1>{editingId ? 'Edit item' : 'Post homework'}</h1>
+          <div className="eyebrow">{editingId ? 'Editing' : 'New entry'}</div>
+          <h1>{editingId ? 'Edit item' : 'Add homework'}</h1>
         </div>
       </header>
 
       <div className="post-layout">
-        <form className="panel stack gap-md" onSubmit={submit}>
+        <form className="form" onSubmit={submit}>
           <div className="field">
-            <span className="field-label mono">TYPE</span>
+            <span className="field-label">Type</span>
             <div className="seg seg-4" role="radiogroup" aria-label="Type">
               {TYPES.map((t) => (
                 <button type="button" role="radio" aria-checked={form.type === t} key={t} className={form.type === t ? 'on' : ''} onClick={() => setType(t)}>
@@ -192,7 +192,7 @@ function Editor({ data }: { data: AppData }) {
           </div>
 
           <div className="field">
-            <span className="field-label mono">SUBJECT</span>
+            <span className="field-label">Subject</span>
             {subjects.length > 0 && (
               <div className="chips">
                 {subjects.map((s) => {
@@ -202,7 +202,7 @@ function Editor({ data }: { data: AppData }) {
                     <button
                       type="button"
                       key={s}
-                      className={`chip mono ${on ? 'on' : ''}`}
+                      className={`chip ${on ? 'on' : ''}`}
                       aria-pressed={on}
                       style={on ? { borderColor: c, background: `${c}24` } : undefined}
                       onClick={() => pickSubject(s)}
@@ -212,7 +212,7 @@ function Editor({ data }: { data: AppData }) {
                     </button>
                   )
                 })}
-                <button type="button" className={`chip chip-new mono ${showSubjectInput ? 'on' : ''}`} onClick={() => { setTypingSubject(true); set('subject', '') }}>
+                <button type="button" className={`chip chip-new ${showSubjectInput ? 'on' : ''}`} onClick={() => { setTypingSubject(true); set('subject', '') }}>
                   <Icon name="plus" size={12} stroke={2.4} />New
                 </button>
               </div>
@@ -229,7 +229,7 @@ function Editor({ data }: { data: AppData }) {
           </div>
 
           <label className="field">
-            <span className="field-label mono">{form.type === 'daily' ? 'WHAT TO DO' : 'TITLE'}</span>
+            <span className="field-label">{form.type === 'daily' ? 'What to do' : 'Title'}</span>
             <input
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
@@ -241,30 +241,34 @@ function Editor({ data }: { data: AppData }) {
           <div className="stack gap-sm">
             <div className="two-col">
               <label className="field">
-                <span className="field-label mono">ASSIGNED</span>
-                <input type="date" className="mono" value={form.assigned_date} onChange={(e) => set('assigned_date', e.target.value)} required />
+                <span className="field-label">Assigned</span>
+                <input type="date" value={form.assigned_date} onChange={(e) => set('assigned_date', e.target.value)} required />
               </label>
               <label className="field">
-                <span className="field-label mono">DUE</span>
-                <input type="date" className="mono" value={form.due_date} onChange={(e) => set('due_date', e.target.value)} required />
+                <span className="field-label">Due</span>
+                <input type="date" value={form.due_date} onChange={(e) => set('due_date', e.target.value)} required />
               </label>
             </div>
-            <div className="mono small muted hint">
-              <span className={gap < 0 ? 'danger' : 'accent'}>T–{Math.max(gap, 0)}D</span>
-              <span>
-                {gap < 0 ? 'Due date is before assigned' : form.type !== 'daily' && gap === 7 && !editingId ? 'Projects and tests default to one week out' : `Due ${gap === 0 ? 'the same day' : `${gap} day${gap === 1 ? '' : 's'} after assigned`}`}
-              </span>
-            </div>
+            <span className={`hint-pill ${gap < 0 ? 'warn' : ''}`}>
+              <Icon name="clock" size={14} stroke={2} />
+              {gap < 0
+                ? 'The due date is before the assigned date'
+                : gap === 0
+                  ? 'Due the same day'
+                  : gap === 7 && form.type !== 'daily' && !editingId
+                    ? 'One week from the assigned date'
+                    : `${gap} day${gap === 1 ? '' : 's'} after it is assigned`}
+            </span>
           </div>
 
           <label className="field">
-            <span className="field-label mono">NOTES <span className="dim">· OPTIONAL</span></span>
+            <span className="field-label">Notes <span className="faint">· optional</span></span>
             <textarea rows={3} value={form.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder="Group size, what to bring, format…" />
           </label>
 
           <label className="field">
-            <span className="field-label mono">LINK <span className="dim">· OPTIONAL</span></span>
-            <input type="url" className="mono" value={form.link ?? ''} onChange={(e) => set('link', e.target.value)} placeholder="https://" />
+            <span className="field-label">Link <span className="faint">· optional</span></span>
+            <input type="url" value={form.link ?? ''} onChange={(e) => set('link', e.target.value)} placeholder="https://" />
           </label>
 
           {err && <div className="alert error">{err}</div>}
@@ -273,7 +277,7 @@ function Editor({ data }: { data: AppData }) {
           <div className="form-actions">
             {editingId && <button type="button" className="btn-secondary" onClick={cancelEdit}>Cancel</button>}
             <button className="btn-primary" disabled={busy}>
-              {busy ? 'Saving…' : editingId ? 'Save changes' : 'Add to board'}
+              {busy ? 'Saving…' : editingId ? 'Save changes' : 'Add to the board'}
               {!busy && <Icon name={editingId ? 'check' : 'arrow'} size={18} stroke={2.2} />}
             </button>
           </div>
@@ -281,9 +285,9 @@ function Editor({ data }: { data: AppData }) {
 
         <div className="stack gap-lg">
           <section className="stack">
-            <SectionLabel right={pad2(current.length)}>CURRENT</SectionLabel>
+            <SectionHeading count={current.length}>On the board</SectionHeading>
             {current.length === 0 ? (
-              <div className="empty mono">Nothing due from today on.</div>
+              <div className="empty">Nothing due from today on.</div>
             ) : (
               <div className="row-list">
                 {current.map((i) => <ItemRow key={i.id} item={i} onEdit={() => edit(i)} onDelete={() => remove(i)} />)}
@@ -293,8 +297,8 @@ function Editor({ data }: { data: AppData }) {
 
           {past.length > 0 && (
             <section className="stack">
-              <button className="btn-ghost mono past-toggle" onClick={() => setShowPast(!showPast)}>
-                {showPast ? 'HIDE' : 'SHOW'} PAST ITEMS ({pad2(past.length)})
+              <button className="btn-quiet past-toggle" onClick={() => setShowPast(!showPast)}>
+                {showPast ? 'Hide' : 'Show'} past items ({past.length})
               </button>
               {showPast && (
                 <div className="row-list">
@@ -305,7 +309,7 @@ function Editor({ data }: { data: AppData }) {
           )}
 
           {store.mode === 'supabase' && (
-            <div className="mono small muted signout-row mobile-only">
+            <div className="signout-row mobile-only">
               Signed in as {data.user}
               <button className="link-btn" onClick={data.signOut}>Sign out</button>
             </div>

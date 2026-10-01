@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
@@ -23,6 +23,18 @@ export default function Today({ data }: { data: AppData }) {
   })
   const [bigOnly, setBigOnly] = useState(false)
   const isToday = day === today
+
+  // Following a #/?d=… link while the page is already open should still move the day.
+  useEffect(() => {
+    const onHash = () => {
+      const asked = dayFromHash() ?? today
+      setDay(asked)
+      const d = parseISO(asked)
+      setMonth((m) => (d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth() ? m : new Date(d.getFullYear(), d.getMonth(), 1)))
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [today])
 
   /** Picking a day pulls the grid to that month; the month arrows then browse freely. */
   const selectDay = (iso: string) => {
@@ -122,8 +134,8 @@ export default function Today({ data }: { data: AppData }) {
             <SectionHeading
               action={
                 <div className="head-actions">
-                  <button className="icon-btn" onClick={() => shiftMonth(-1)} aria-label="Previous month"><Icon name="left" size={16} /></button>
-                  <button className="icon-btn" onClick={() => shiftMonth(1)} aria-label="Next month"><Icon name="right" size={16} /></button>
+                  <button className="icon-btn sm" onClick={() => shiftMonth(-1)} aria-label="Previous month"><Icon name="left" size={16} /></button>
+                  <button className="icon-btn sm" onClick={() => shiftMonth(1)} aria-label="Next month"><Icon name="right" size={16} /></button>
                 </div>
               }
             >
@@ -132,7 +144,7 @@ export default function Today({ data }: { data: AppData }) {
 
             <div className="seg seg-2" role="radiogroup" aria-label="What to show on the calendar">
               <button role="radio" aria-checked={!bigOnly} className={!bigOnly ? 'on' : ''} onClick={() => setBigOnly(false)}>Everything</button>
-              <button role="radio" aria-checked={bigOnly} className={bigOnly ? 'on' : ''} onClick={() => setBigOnly(true)}>Tests &amp; projects</button>
+              <button role="radio" aria-checked={bigOnly} className={bigOnly ? 'on' : ''} onClick={() => setBigOnly(true)}>Tests &amp; Projects</button>
             </div>
 
             <div className="card month-card">

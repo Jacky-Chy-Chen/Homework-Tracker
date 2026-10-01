@@ -169,7 +169,8 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 .status .dot.dot-accent { background: var(--accent); }
 .status .dot.dot-warn { background: var(--warn); }
 
-.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 32px; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
+.icon-btn.sm { width: 36px; height: 36px; border-radius: 10px; }
 .section-heading-left { display: flex; align-items: center; gap: 8px; }
 .count {
   min-width: 22px;
@@ -406,11 +407,11 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
 .month-head { padding-bottom: 6px; text-align: center; font-size: 11px; font-weight: 600; color: var(--faint); }
 .month-cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
   height: 48px;
   padding: 0;
   background: transparent;
@@ -422,18 +423,30 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 .month-cell:not(.static):hover { background: var(--surface-2); }
 .month-cell.out .month-num { color: var(--line); }
 .month-cell.selected { background: var(--accent-soft); border-color: var(--accent); }
+/* Selected and today at once: a ring around the filled circle, so both still read. */
+.month-cell.selected .month-num.today { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 4px var(--accent); }
 .month-num {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   font-size: 14px;
   font-weight: 500;
 }
 .month-num.today { background: var(--accent); color: var(--on-accent); font-weight: 700; }
-.marks { display: flex; align-items: center; justify-content: center; gap: 3px; height: 9px; }
+.marks {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  height: 9px;
+}
 .mark-dot { width: 5px; height: 5px; border-radius: 50%; }
 .mark-star { display: flex; color: var(--warn); }
 .mark-star svg { fill: currentColor; }
@@ -459,6 +472,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 }
 .day-pill-name { font-size: 12px; font-weight: 600; letter-spacing: 0.03em; }
 .day-pill-date { font-size: 18px; font-weight: 700; line-height: 1.1; }
+.day-pill-month { font-size: 11px; font-weight: 600; opacity: 0.75; }
 .day-pill.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 .hint-line { display: flex; align-items: center; gap: 7px; margin: 16px 0 0; font-size: 13px; color: var(--muted); }

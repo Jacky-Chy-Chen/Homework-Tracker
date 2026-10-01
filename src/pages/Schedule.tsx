@@ -7,6 +7,8 @@ import { subjectColor } from '../lib/homework'
 import { CLASS_INFO, DAY_NAMES, daySlots, PERIODS, weekdayIndex } from '../lib/schedule'
 import { store, type Timetable } from '../lib/store'
 
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 /** Monday of the week containing `iso` (weekends look ahead to the coming Monday). */
 function mondayOf(iso: string) {
   const d = parseISO(iso)
@@ -53,6 +55,7 @@ export default function Schedule({ data }: { data: AppData }) {
           <button key={d} className={`day-pill ${view === 'day' && d === selected ? 'on' : ''}`} onClick={() => pick(d)}>
             <span className="day-pill-name">{DAY_NAMES[weekdayIndex(d)!].slice(0, 3)}</span>
             <span className="day-pill-date">{parseISO(d).getDate()}</span>
+            <span className="day-pill-month">{MONTHS_SHORT[parseISO(d).getMonth()]}</span>
           </button>
         ))}
       </div>
@@ -164,7 +167,7 @@ function WeekGrid({
         {days.map((d) => (
           <div key={d} className={`week-head ${d === today ? 'is-today' : ''}`}>
             <span>{DAY_NAMES[weekdayIndex(d)!].slice(0, 3)}</span>
-            <span className="faint">{parseISO(d).getDate()}</span>
+            <span className="faint">{parseISO(d).getDate()} {MONTHS_SHORT[parseISO(d).getMonth()]}</span>
           </div>
         ))}
 

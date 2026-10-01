@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
@@ -62,6 +62,20 @@ export default function Today({ data }: { data: AppData }) {
   const nextMonday = addDays(today, ((8 - parseISO(today).getDay()) % 7) || 7)
   const shiftMonth = (n: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
 
+  // On wide screens the empty "no homework" box stretches to the bottom of the
+  // filter-plus-calendar block beside it, so both columns end on the same line.
+  // Months with five or six weeks differ in height, so measure rather than guess.
+  const calRef = useRef<HTMLDivElement>(null)
+  const [calHeight, setCalHeight] = useState(0)
+  useLayoutEffect(() => {
+    const measure = () => setCalHeight(calRef.current?.offsetHeight ?? 0)
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+    // Re-measure whenever the grid changes shape: a five- or six-week month,
+    // or a filter that changes nothing about the height but might later.
+  }, [month, bigOnly, data.items.length])
+
   return (
     <>
       <TopBar editor={!!data.user} />
@@ -98,7 +112,7 @@ export default function Today({ data }: { data: AppData }) {
         </div>
       )}
 
-      <div className="today-grid">
+      <div className="today-grid" style={calHeight ? ({ '--cal-h': `${calHeight}px` } as React.CSSProperties) : undefined}>
         <div className="col">
           <section className="stack order-1">
             <SectionHeading count={posted.length}>{isToday ? 'Homework' : 'Posted this day'}</SectionHeading>
@@ -142,6 +156,7 @@ export default function Today({ data }: { data: AppData }) {
               {month.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
             </SectionHeading>
 
+            <div className="cal-block" ref={calRef}>
             <div className="seg seg-2" role="radiogroup" aria-label="What to show on the calendar">
               <button role="radio" aria-checked={!bigOnly} className={!bigOnly ? 'on' : ''} onClick={() => setBigOnly(false)}>Everything</button>
               <button role="radio" aria-checked={bigOnly} className={bigOnly ? 'on' : ''} onClick={() => setBigOnly(true)}>Tests &amp; Projects</button>
@@ -150,6 +165,7 @@ export default function Today({ data }: { data: AppData }) {
             <div className="card month-card">
               <MonthGrid month={month} items={onGrid} selected={day} onSelect={selectDay} />
               <Legend />
+            </div>
             </div>
           </section>
 

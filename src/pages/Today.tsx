@@ -25,7 +25,7 @@ export default function Today({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar label="CLASS FEED" poster={!!data.user} />
+      <TopBar label="CLASS FEED" editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">

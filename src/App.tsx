@@ -33,12 +33,12 @@ export interface AppData {
   signOut: () => Promise<void>
 }
 
-const NAV: { route: Route; href: string; label: string; icon: IconName; posterOnly?: boolean }[] = [
+const NAV: { route: Route; href: string; label: string; icon: IconName; editorOnly?: boolean }[] = [
   { route: 'today', href: '#/', label: 'Today', icon: 'today' },
   { route: 'calendar', href: '#/calendar', label: 'Calendar', icon: 'calendar' },
   { route: 'schedule', href: '#/schedule', label: 'Classes', icon: 'grid' },
   { route: 'materials', href: '#/materials', label: 'Files', icon: 'folder' },
-  { route: 'post', href: '#/post', label: 'Post', icon: 'plus', posterOnly: true },
+  { route: 'post', href: '#/post', label: 'Post', icon: 'plus', editorOnly: true },
 ]
 
 const TITLES: Record<Route, string> = {
@@ -116,7 +116,7 @@ export default function App() {
     items, materials, timetable, changes, loading, error, user,
     reload, reloadSchedule, reloadMaterials, setUser, signOut,
   }
-  const nav = NAV.filter((n) => !n.posterOnly || user)
+  const nav = NAV.filter((n) => !n.editorOnly || user)
   // The sign-in screen is full-bleed with no navigation.
   const signingIn = route === 'post' && !user
 
@@ -141,11 +141,11 @@ export default function App() {
             <ThemeToggle row />
             {user && store.mode === 'supabase' ? (
               <div className="sidebar-user">
-                <span className="mono accent xsmall"><span className="dot" />SIGNED IN AS POSTER</span>
+                <span className="mono accent xsmall"><span className="dot" />SIGNED IN AS EDITOR</span>
                 <button className="link-btn" onClick={signOut}>Sign out</button>
               </div>
             ) : !user ? (
-              <a className="sidebar-user mono muted small" href="#/post">Poster sign in →</a>
+              <a className="sidebar-user mono muted small" href="#/post">Sign in →</a>
             ) : null}
           </div>
         </aside>
@@ -161,7 +161,7 @@ export default function App() {
         {!user && route !== 'post' && (
           <footer className="footer">
             <a href="#/post" className="mono">
-              Poster sign in <Icon name="arrow" size={14} stroke={2} />
+              Sign in to post <Icon name="arrow" size={14} stroke={2} />
             </a>
           </footer>
         )}

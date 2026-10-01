@@ -28,7 +28,7 @@ export default function Schedule({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar label="SCHEDULE" poster={!!data.user} />
+      <TopBar label="SCHEDULE" editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">

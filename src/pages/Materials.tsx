@@ -31,7 +31,7 @@ export default function Materials({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar label="MATERIALS" poster={!!data.user} />
+      <TopBar label="MATERIALS" editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">

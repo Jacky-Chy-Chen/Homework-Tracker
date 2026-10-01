@@ -35,13 +35,13 @@ export function ThemeToggle({ row }: { row?: boolean }) {
 }
 
 /** The small bar above each page: wordmark on the left, a label and the theme toggle on the right. */
-export function TopBar({ label, poster }: { label?: string; poster?: boolean }) {
+export function TopBar({ label, editor }: { label?: string; editor?: boolean }) {
   return (
     <div className="topbar">
       <Wordmark />
       <span className="topbar-right">
-        {poster ? (
-          <span className="mono topbar-label accent"><span className="dot" />POSTER</span>
+        {editor ? (
+          <span className="mono topbar-label accent"><span className="dot" />EDITOR</span>
         ) : (
           label && <span className="mono topbar-label">{label}</span>
         )}
@@ -150,7 +150,7 @@ export function TimelineItem({ item, from, files }: { item: Item; from: string; 
   )
 }
 
-/** Compact row with edit/delete, for the poster's list. */
+/** Compact row with edit/delete, for the editor's list. */
 export function ItemRow({ item, onEdit, onDelete }: { item: Item; onEdit: () => void; onDelete: () => void }) {
   const today = todayISO()
   const due = item.due_date === today ? 'DUE TODAY' : item.due_date < today ? `DUE ${relative(today, item.due_date).toUpperCase()}` : fmtTag(item.due_date)

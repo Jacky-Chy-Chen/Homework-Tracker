@@ -32,7 +32,7 @@ export default function Calendar({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar label="CALENDAR" poster={!!data.user} />
+      <TopBar label="CALENDAR" editor={!!data.user} />
 
       <header className="page-head">
         <div className="page-head-text">

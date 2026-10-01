@@ -50,8 +50,8 @@ function SignIn({ onSignedIn }: { onSignedIn: (u: string | null) => void }) {
         <div className="stack gap-lg">
           <Wordmark big />
           <div className="stack">
-            <h1>Poster sign in</h1>
-            <p className="lead">Only the homework poster needs an account. Everyone else can just read.</p>
+            <h1>Sign in to post</h1>
+            <p className="lead">Only the people who post homework need an account. Everyone else can just read.</p>
           </div>
         </div>
         <form className="stack" onSubmit={submit}>
@@ -169,7 +169,7 @@ function Editor({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar poster />
+      <TopBar editor />
 
       <header className="page-head">
         <div className="page-head-text">

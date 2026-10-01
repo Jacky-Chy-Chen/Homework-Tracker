@@ -1,6 +1,6 @@
 # Homework Tracker
 
-A homeroom homework board. One poster adds each day's homework plus long-term projects
+A homeroom homework board. One editor (the class rep or the teacher) adds each day's homework plus long-term projects
 and tests; everyone else opens the link from the WeChat group to see today's homework and a
 calendar of what's coming up. The Today page also writes the daily group-chat message,
 with automatic reminders for projects/tests due in the next 14 days.
@@ -9,11 +9,11 @@ with automatic reminders for projects/tests due in the next 14 days.
 
 | Route | Who | What |
 |---|---|---|
-| `#/` | everyone | Today's homework by subject, "coming up" list, ‹ › to browse days. Poster also gets the **Copy** group-chat message. |
+| `#/` | everyone | Today's homework by subject, "coming up" list, ‹ › to browse days. Editors also get the **Copy** group-chat message. |
 | `#/calendar` | everyone | Month view of everything by due date. Tap a day for details. "Projects & tests only" hides daily homework. |
-| `#/schedule` | everyone | The weekly timetable with bell times. The poster can swap, replace or cancel a class for one date, or change the timetable for good. |
-| `#/materials` | everyone | Review sheets, notes and slides. The poster uploads; everyone downloads. |
-| `#/post` | poster | Sign in, add / edit / delete items. |
+| `#/schedule` | everyone | The weekly timetable with bell times. An editor can swap, replace or cancel a class for one date, or change the timetable for good. |
+| `#/materials` | everyone | Review sheets, notes and slides. Editors upload; everyone downloads. |
+| `#/post` | editors | Sign in, add / edit / delete items. |
 
 ## Run locally
 
@@ -41,7 +41,7 @@ Uploaded files are kept as data URLs there, so demo mode caps them at 1 MB.
 2. SQL Editor → paste and run `supabase/schema.sql`.
 3. Storage → New bucket → name it `materials` and tick **Public bucket**.
 4. Authentication → Sign In / Providers → turn **off** "Allow new users to sign up".
-5. Authentication → Users → **Add user** with your email + password (this is the poster account).
+5. Authentication → Users → **Add user** with your email + password (this is your editor account).
 6. `cp .env.example .env.local` and fill in the URL and anon key from Project Settings → API.
 
 Anyone can read; only signed-in users can write, and sign-ups are off, so that's only you.

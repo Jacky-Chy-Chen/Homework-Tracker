@@ -836,12 +836,13 @@ button.week-cell:hover { background: var(--surface-2); }
   h2 { font-size: 18px; }
 
   .today-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
-  /* The first box on the left runs down to the calendar's bottom edge. */
+  /* The empty box ends level with the Everything / Tests & Projects switch. */
   .today-grid .order-1 .empty {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: var(--cal-h, auto);
+    padding: 12px 20px;
+    height: var(--seg-h, auto);
   }
   .today-grid .col { display: flex; flex-direction: column; gap: 24px; }
   .card-title { font-size: 17px; }

@@ -9,8 +9,7 @@ with automatic reminders for projects/tests due in the next 14 days.
 
 | Route | Who | What |
 |---|---|---|
-| `#/` | everyone | Today's homework by subject, "coming up" list, ‹ › to browse days. Editors also get the **Copy** group-chat message. |
-| `#/calendar` | everyone | Month view of everything by due date. Tap a day for details. "Projects & tests only" hides daily homework. |
+| `#/` | everyone | Everything about one day: homework posted that day, what is due that day, the month calendar, "coming up", and (for editors) the **Copy** group-chat message. `#/?d=2026-10-08` opens a particular date. |
 | `#/schedule` | everyone | The weekly timetable with bell times. An editor can swap, replace or cancel a class for one date, or change the timetable for good. |
 | `#/materials` | everyone | Review sheets, notes and slides. Editors upload; everyone downloads. |
 | `#/post` | editors | Sign in, add / edit / delete items. |
@@ -58,7 +57,7 @@ WeChat — pick a host classmates can actually open, then pin the link in the gr
 - `src/lib/homework.ts` — "coming up" rules and the group-chat message text
 - `src/lib/dates.ts` — local `YYYY-MM-DD` date helpers
 - `src/lib/schedule.ts` — bell times, the printed timetable, and how changes are applied
-- `src/pages/` — Today, Calendar, Schedule, Materials, Post (sign-in lives in Post)
+- `src/pages/` — Today (includes the calendar), Schedule, Materials, Post (sign-in lives in Post)
 - `src/components/` — shared UI (cards, timeline, month grid, icons)
 - `src/styles.css` — the theme; every colour is a CSS variable at the top, light and dark
 

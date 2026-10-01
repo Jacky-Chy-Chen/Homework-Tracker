@@ -1,27 +1,54 @@
 import { useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
-import MonthGrid from '../components/MonthGrid'
+import MonthGrid, { Legend } from '../components/MonthGrid'
 import { ItemCard, MessageCard, SectionHeading, TopBar, UpcomingCard } from '../components/ui'
 import { addDays, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
 import { assignedOn, buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 import { changeLines, daySlots } from '../lib/schedule'
 
+/** A link can open a particular date: #/?d=2026-10-08 */
+function dayFromHash() {
+  const q = location.hash.split('?')[1] ?? ''
+  const d = new URLSearchParams(q).get('d')
+  return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null
+}
+
 export default function Today({ data }: { data: AppData }) {
-  const [day, setDay] = useState(todayISO)
   const today = todayISO()
+  const [day, setDay] = useState(() => dayFromHash() ?? today)
+  const [month, setMonth] = useState(() => {
+    const d = parseISO(dayFromHash() ?? today)
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+  const [bigOnly, setBigOnly] = useState(false)
   const isToday = day === today
-  // Keep subjects together, the same order the chat message uses.
+
+  /** Picking a day pulls the grid to that month; the month arrows then browse freely. */
+  const selectDay = (iso: string) => {
+    setDay(iso)
+    const d = parseISO(iso)
+    if (d.getFullYear() !== month.getFullYear() || d.getMonth() !== month.getMonth()) {
+      setMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+    }
+    // Keep the address shareable without filling up the back button.
+    location.replace(iso === today ? '#/' : `#/?d=${iso}`)
+  }
+
+  // Subjects stay together, in the order the chat message uses.
   const posted = groupBySubject(assignedOn(data.items, day)).flatMap(([, list]) => list)
-  const upcoming = upcomingFrom(data.items, day)
-  const d = parseISO(day)
-  const month = new Date(d.getFullYear(), d.getMonth(), 1)
+  const upcoming = upcomingFrom(data.items, today)
+  // Everything due on the chosen day, minus homework that was only set the day before.
+  const dueThisDay = data.items.filter((i) => i.due_date === day && onCalendar(i))
+  const planned = data.items.filter(onCalendar)
+  const onGrid = bigOnly ? planned.filter((i) => i.type === 'test' || i.type === 'project') : planned
+
   const filesFor = (id: string) => data.materials.filter((m) => m.item_id === id)
   // Timetable changes for the next school day go into the message, so the class hears about swaps.
   const nextDay = nextSchoolDay(day)
   const swaps = changeLines(daySlots(nextDay, data.timetable, data.changes))
-  // Monday of next week, for the Sunday-night preview.
   const nextMonday = addDays(today, ((8 - parseISO(today).getDay()) % 7) || 7)
+  const shiftMonth = (n: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
 
   return (
     <>
@@ -36,11 +63,11 @@ export default function Today({ data }: { data: AppData }) {
           <h1>{isToday ? 'Today' : fmtLong(day)}</h1>
         </div>
         <div className="head-actions">
-          {!isToday && <button className="btn-quiet" onClick={() => setDay(today)}>Today</button>}
-          <button className="icon-btn" onClick={() => setDay(addDays(day, -1))} aria-label="Previous day">
+          {!isToday && <button className="btn-quiet" onClick={() => selectDay(today)}>Today</button>}
+          <button className="icon-btn" onClick={() => selectDay(addDays(day, -1))} aria-label="Previous day">
             <Icon name="left" />
           </button>
-          <button className="icon-btn" onClick={() => setDay(addDays(day, 1))} aria-label="Next day">
+          <button className="icon-btn" onClick={() => selectDay(addDays(day, 1))} aria-label="Next day">
             <Icon name="right" />
           </button>
           {data.user && (
@@ -62,7 +89,7 @@ export default function Today({ data }: { data: AppData }) {
       <div className="today-grid">
         <div className="col">
           <section className="stack order-1">
-            <SectionHeading count={posted.length}>Homework</SectionHeading>
+            <SectionHeading count={posted.length}>{isToday ? 'Homework' : 'Posted this day'}</SectionHeading>
             {data.loading ? (
               <div className="empty">Loading…</div>
             ) : posted.length === 0 ? (
@@ -72,8 +99,15 @@ export default function Today({ data }: { data: AppData }) {
             )}
           </section>
 
+          {dueThisDay.length > 0 && (
+            <section className="stack order-2">
+              <SectionHeading count={dueThisDay.length}>Due this day</SectionHeading>
+              {dueThisDay.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)}
+            </section>
+          )}
+
           {data.user && !data.loading && (
-            <div className="order-3">
+            <div className="order-5">
               <MessageCard
                 text={buildMessage(data.items, day, swaps, fmtTag(nextDay))}
                 weekText={buildWeekMessage(data.items, nextMonday)}
@@ -84,30 +118,33 @@ export default function Today({ data }: { data: AppData }) {
         </div>
 
         <div className="col">
-          {/* Sits level with "Homework" on wide screens; hidden on phones, where the Calendar tab is a tap away. */}
-          <section className="stack desktop-only">
-            <SectionHeading action={<a href="#/calendar" className="section-link">Open calendar</a>}>
-              {month.toLocaleDateString('en-GB', { month: 'long' })}
+          <section className="stack order-3">
+            <SectionHeading
+              action={
+                <div className="head-actions">
+                  <button className="icon-btn" onClick={() => shiftMonth(-1)} aria-label="Previous month"><Icon name="left" size={16} /></button>
+                  <button className="icon-btn" onClick={() => shiftMonth(1)} aria-label="Next month"><Icon name="right" size={16} /></button>
+                </div>
+              }
+            >
+              {month.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
             </SectionHeading>
+
+            <div className="seg seg-2" role="radiogroup" aria-label="What to show on the calendar">
+              <button role="radio" aria-checked={!bigOnly} className={!bigOnly ? 'on' : ''} onClick={() => setBigOnly(false)}>Everything</button>
+              <button role="radio" aria-checked={bigOnly} className={bigOnly ? 'on' : ''} onClick={() => setBigOnly(true)}>Tests &amp; projects</button>
+            </div>
+
             <div className="card month-card">
-              <MonthGrid
-                month={month}
-                items={data.items.filter(onCalendar)}
-                selected={day}
-                onSelect={(iso) => { location.hash = `#/calendar?d=${iso}` }}
-              />
+              <MonthGrid month={month} items={onGrid} selected={day} onSelect={selectDay} />
+              <Legend />
             </div>
           </section>
 
           {upcoming.length > 0 && (
-            <section className="stack order-2">
-              <SectionHeading
-                count={upcoming.length}
-                action={<a href="#/calendar" className="section-link">Calendar</a>}
-              >
-                Coming up
-              </SectionHeading>
-              {upcoming.map((i) => <UpcomingCard key={i.id} item={i} from={day} files={filesFor(i.id)} />)}
+            <section className="stack order-4">
+              <SectionHeading count={upcoming.length}>Coming up</SectionHeading>
+              {upcoming.map((i) => <UpcomingCard key={i.id} item={i} from={today} files={filesFor(i.id)} />)}
             </section>
           )}
         </div>

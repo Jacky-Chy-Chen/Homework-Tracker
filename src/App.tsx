@@ -5,14 +5,13 @@ import { addDays, todayISO } from './lib/dates'
 import Icon, { type IconName } from './components/Icon'
 import { ThemeToggle, Wordmark } from './components/ui'
 import Today from './pages/Today'
-import Calendar from './pages/Calendar'
 import Schedule from './pages/Schedule'
 import Materials from './pages/Materials'
 import Post from './pages/Post'
 
 // Hash routing: works on any static host and inside WeChat's browser.
-type Route = 'today' | 'calendar' | 'schedule' | 'materials' | 'post'
-const ROUTES: Route[] = ['today', 'calendar', 'schedule', 'materials', 'post']
+type Route = 'today' | 'schedule' | 'materials' | 'post'
+const ROUTES: Route[] = ['today', 'schedule', 'materials', 'post']
 const readRoute = (): Route => {
   const r = location.hash.replace(/^#\/?/, '').split('?')[0] as Route
   return ROUTES.includes(r) ? r : 'today'
@@ -35,7 +34,6 @@ export interface AppData {
 
 const NAV: { route: Route; href: string; label: string; icon: IconName; editorOnly?: boolean }[] = [
   { route: 'today', href: '#/', label: 'Today', icon: 'today' },
-  { route: 'calendar', href: '#/calendar', label: 'Calendar', icon: 'calendar' },
   { route: 'schedule', href: '#/schedule', label: 'Classes', icon: 'grid' },
   { route: 'materials', href: '#/materials', label: 'Files', icon: 'folder' },
   { route: 'post', href: '#/post', label: 'Add', icon: 'plus', editorOnly: true },
@@ -43,7 +41,6 @@ const NAV: { route: Route; href: string; label: string; icon: IconName; editorOn
 
 const TITLES: Record<Route, string> = {
   today: 'Classboard',
-  calendar: 'Calendar · Classboard',
   schedule: 'Classes · Classboard',
   materials: 'Files · Classboard',
   post: 'Add homework · Classboard',
@@ -92,7 +89,16 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const onHash = () => setRoute(readRoute())
+    // The calendar used to be its own page; old links keep working.
+    const legacy = () => {
+      const m = location.hash.match(/^#\/calendar(\?.*)?$/)
+      if (m) location.replace(`#/${m[1] ?? ''}`)
+    }
+    legacy()
+    const onHash = () => {
+      legacy()
+      setRoute(readRoute())
+    }
     window.addEventListener('hashchange', onHash)
     reload()
     reloadSchedule()
@@ -154,7 +160,6 @@ export default function App() {
       <main className={`page page-${route}`}>
         {error && <div className="alert error">Something went wrong: {error}</div>}
         {route === 'today' && <Today data={data} />}
-        {route === 'calendar' && <Calendar data={data} />}
         {route === 'schedule' && <Schedule data={data} />}
         {route === 'materials' && <Materials data={data} />}
         {route === 'post' && <Post data={data} />}

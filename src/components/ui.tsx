@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { daysBetween, fmtTag, relative, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
-import type { Item } from '../lib/store'
+import { store, type Item, type Material } from '../lib/store'
+import { toggleDone, useDone } from '../lib/done'
 import { setTheme, useTheme } from '../lib/theme'
 import Icon from './Icon'
 
@@ -10,7 +11,7 @@ export const pad2 = (n: number) => String(n).padStart(2, '0')
 export function Wordmark({ big }: { big?: boolean }) {
   return (
     <span className={`wordmark mono ${big ? 'big' : ''}`}>
-      <span className="dim">~/</span>homework<span className="cursor" />
+      <span className="dim">~/</span>homework
     </span>
   )
 }
@@ -74,10 +75,16 @@ export function TypeTag({ type }: { type: Item['type'] }) {
   return <span className={`tag mono tag-${type}`}>{type === 'test' ? 'TEST' : type === 'project' ? 'PROJECT' : 'OTHER'}</span>
 }
 
-function ItemExtras({ item }: { item: Item }) {
+function ItemExtras({ item, files = [] }: { item: Item; files?: Material[] }) {
   return (
     <>
       {item.notes && <div className="card-notes">{item.notes}</div>}
+      {files.map((f) => (
+        <a key={f.id} className="card-link mono" href={store.fileUrl(f)} target="_blank" rel="noreferrer">
+          <Icon name="folder" size={14} />
+          {f.title}
+        </a>
+      ))}
       {item.link && (
         <a className="card-link mono" href={item.link} target="_blank" rel="noreferrer">
           <Icon name="link" size={14} />
@@ -88,10 +95,12 @@ function ItemExtras({ item }: { item: Item }) {
   )
 }
 
-/** Card for one item: subject + due date on top, then the title. */
-export function ItemCard({ item }: { item: Item }) {
+/** Card for one item: subject + due date on top, then the title.
+    `tick` adds the personal done checkbox (saved in this browser only). */
+export function ItemCard({ item, files, tick }: { item: Item; files?: Material[]; tick?: boolean }) {
+  const done = useDone().has(item.id)
   return (
-    <div className="card">
+    <div className={`card ${tick && done ? 'is-done' : ''}`}>
       <div className="card-top">
         <span className="card-top-left">
           <TypeTag type={item.type} />
@@ -99,14 +108,27 @@ export function ItemCard({ item }: { item: Item }) {
         </span>
         <span className="mono muted small">DUE {fmtTag(item.due_date)}</span>
       </div>
-      <div className="card-title">{item.title}</div>
-      <ItemExtras item={item} />
+      <div className="card-main">
+        {tick && (
+          <button
+            className={`tick ${done ? 'on' : ''}`}
+            onClick={() => toggleDone(item.id)}
+            role="checkbox"
+            aria-checked={done}
+            aria-label={`Mark "${item.title}" as done`}
+          >
+            {done && <Icon name="check" size={14} stroke={3} />}
+          </button>
+        )}
+        <div className="card-title">{item.title}</div>
+      </div>
+      <ItemExtras item={item} files={files} />
     </div>
   )
 }
 
 /** Countdown timeline row used for projects and tests coming up. */
-export function TimelineItem({ item, from }: { item: Item; from: string }) {
+export function TimelineItem({ item, from, files }: { item: Item; from: string; files?: Material[] }) {
   const days = daysBetween(from, item.due_date)
   return (
     <div className="tl-row">
@@ -121,7 +143,7 @@ export function TimelineItem({ item, from }: { item: Item; from: string }) {
           <SubjectLabel subject={item.subject} />
         </div>
         <div className="card-title">{item.title}</div>
-        <ItemExtras item={item} />
+        <ItemExtras item={item} files={files} />
         <div className="mono dim small">DUE {fmtTag(item.due_date)}</div>
       </div>
     </div>
@@ -150,24 +172,26 @@ export function ItemRow({ item, onEdit, onDelete }: { item: Item; onEdit: () => 
   )
 }
 
-export function MessageConsole({ text, reminders }: { text: string; reminders: number }) {
+export function MessageConsole({ text, weekText, reminders }: { text: string; weekText: string; reminders: number }) {
   const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [span, setSpan] = useState<'day' | 'week'>('day')
+  const shown = span === 'day' ? text : weekText
 
   const copy = async () => {
     let ok = false
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(shown)
       ok = true
     } catch {
       // WeChat's browser often blocks the async clipboard API; fall back to execCommand.
       const ta = document.createElement('textarea')
-      ta.value = text
+      ta.value = shown
       ta.setAttribute('readonly', '')
       ta.style.position = 'fixed'
       ta.style.opacity = '0'
       document.body.appendChild(ta)
       ta.select()
-      ta.setSelectionRange(0, text.length)
+      ta.setSelectionRange(0, shown.length)
       try {
         ok = document.execCommand('copy')
       } catch {}
@@ -182,10 +206,13 @@ export function MessageConsole({ text, reminders }: { text: string; reminders: n
       <SectionLabel right="AUTO-GENERATED">GROUP MESSAGE</SectionLabel>
       <div className="console">
         <div className="console-head mono">
-          <span>WECHAT PREVIEW</span>
-          <span>{reminders === 0 ? 'NO REMINDERS' : `${reminders} REMINDER${reminders === 1 ? '' : 'S'} ADDED`}</span>
+          <span className="span-switch">
+            <button className={span === 'day' ? 'on' : ''} onClick={() => setSpan('day')}>TODAY</button>
+            <button className={span === 'week' ? 'on' : ''} onClick={() => setSpan('week')}>NEXT WEEK</button>
+          </span>
+          <span>{span === 'week' ? 'WEEK PREVIEW' : reminders === 0 ? 'NO REMINDERS' : `${reminders} REMINDER${reminders === 1 ? '' : 'S'} ADDED`}</span>
         </div>
-        <textarea className="console-body mono" readOnly value={text} rows={text.split('\n').length} aria-label="Group chat message" />
+        <textarea className="console-body mono" readOnly value={shown} rows={shown.split('\n').length} aria-label="Group chat message" />
       </div>
       <button className="btn-primary" onClick={copy}>
         <Icon name={status === 'copied' ? 'check' : 'copy'} size={18} stroke={2.1} />

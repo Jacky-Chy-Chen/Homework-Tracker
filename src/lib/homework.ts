@@ -1,4 +1,4 @@
-import { addDays, fmtShort, relative } from './dates'
+import { addDays, fmtShort, nextSchoolDay, relative } from './dates'
 import type { Item, ItemType } from './store'
 
 /** How far ahead projects/tests show up as reminders. */
@@ -30,14 +30,17 @@ export const upcomingFrom = (items: Item[], day: string) => {
     .sort((a, b) => a.due_date.localeCompare(b.due_date))
 }
 
+/** Homework due the very next school day is noise on a calendar — only longer-range work shows there. */
+export const onCalendar = (i: Item) => i.type !== 'daily' || i.due_date > nextSchoolDay(i.assigned_date)
+
 export const groupBySubject = (items: Item[]) => {
   const groups = new Map<string, Item[]>()
   for (const i of items) groups.set(i.subject, [...(groups.get(i.subject) ?? []), i])
   return [...groups.entries()]
 }
 
-/** The text pasted into the homeroom WeChat group. */
-export function buildMessage(items: Item[], day: string) {
+/** The text pasted into the homeroom WeChat group. `swaps` are tomorrow's timetable changes. */
+export function buildMessage(items: Item[], day: string, swaps: string[] = [], swapDay = '') {
   const today = assignedOn(items, day)
   const upcoming = upcomingFrom(items, day)
   const lines: string[] = [`📚 Homework ${fmtShort(day)}`, '']
@@ -51,6 +54,11 @@ export function buildMessage(items: Item[], day: string) {
     }
   }
 
+  if (swaps.length) {
+    lines.push('', `🔄 Timetable ${swapDay}:`)
+    for (const l of swaps) lines.push(`• ${l}`)
+  }
+
   if (upcoming.length) {
     lines.push('', '⏰ Coming up:')
     for (const i of upcoming) {
@@ -61,6 +69,24 @@ export function buildMessage(items: Item[], day: string) {
 }
 
 // Bright enough to read on the dark background.
+/** Sunday-night preview: everything due in the week starting `from`. */
+export function buildWeekMessage(items: Item[], from: string) {
+  const to = addDays(from, 6)
+  const due = items
+    .filter((i) => i.due_date >= from && i.due_date <= to && (i.type !== 'daily' || i.due_date > nextSchoolDay(i.assigned_date)))
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+  const lines = [`🗓 Week of ${fmtShort(from)}`, '']
+  if (due.length === 0) {
+    lines.push('Nothing big due this week.')
+  } else {
+    for (const i of due) {
+      lines.push(`${TYPE_EMOJI[i.type]} ${fmtShort(i.due_date)} 【${i.subject}】${i.title}${i.type === 'daily' ? '' : ` (${TYPE_LABEL[i.type].toLowerCase()})`}`)
+      if (i.notes) lines.push(`   ${i.notes}`)
+    }
+  }
+  return lines.join('\n')
+}
+
 const FIXED: Record<string, string> = {
   math: '#4FD1C5',
   english: '#F6C85F',
@@ -69,7 +95,13 @@ const FIXED: Record<string, string> = {
   biology: '#9ECE6A',
   physics: '#B69CFF',
   chinese: '#FF9E64',
+  civics: '#E0AF68',
   geography: '#73DACA',
+  pe: '#5BC8E8',
+  art: '#F7768E',
+  it: '#7DCFFF',
+  optional: '#A0A8B4',
+  club: '#BB9AF7',
 }
 const PALETTE = ['#4FD1C5', '#F6C85F', '#FF8FB1', '#7AA2F7', '#9ECE6A', '#B69CFF', '#FF9E64', '#73DACA', '#E0AF68', '#BB9AF7']
 

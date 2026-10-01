@@ -3,6 +3,7 @@ import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
 import { ItemCard, pad2, SectionLabel, TopBar } from '../components/ui'
+import { onCalendar } from '../lib/homework'
 import { fmtTag, parseISO, todayISO } from '../lib/dates'
 
 export default function Calendar({ data }: { data: AppData }) {
@@ -14,10 +15,11 @@ export default function Calendar({ data }: { data: AppData }) {
   const [selected, setSelected] = useState(today)
   const [bigOnly, setBigOnly] = useState(false)
 
-  const shown = useMemo(
-    () => (bigOnly ? data.items.filter((i) => i.type === 'test' || i.type === 'project') : data.items),
-    [data.items, bigOnly],
-  )
+  // Homework due the next school day never reaches the calendar; it lives on the Today page.
+  const shown = useMemo(() => {
+    const planned = data.items.filter(onCalendar)
+    return bigOnly ? planned.filter((i) => i.type === 'test' || i.type === 'project') : planned
+  }, [data.items, bigOnly])
   const dayItems = shown.filter((i) => i.due_date === selected)
 
   const shift = (n: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
@@ -65,7 +67,7 @@ export default function Calendar({ data }: { data: AppData }) {
           {dayItems.length === 0 ? (
             <div className="empty mono">Nothing due.</div>
           ) : (
-            dayItems.map((i) => <ItemCard key={i.id} item={i} />)
+            dayItems.map((i) => <ItemCard key={i.id} item={i} files={data.materials.filter((m) => m.item_id === i.id)} tick />)
           )}
         </section>
       </div>

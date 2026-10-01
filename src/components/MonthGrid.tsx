@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { toISO, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
+import Icon from './Icon'
 import type { Item } from '../lib/store'
 
 const WEEK = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -47,7 +48,11 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
           <>
             <span className="month-cell-top">
               <span className={`month-num mono ${iso === today ? 'today' : ''}`}>{day}</span>
-              {flag && <span className={`flag flag-${flag}`} />}
+              {flag === 'test' ? (
+                <span className="flag-star" title="Test"><Icon name="star" size={13} stroke={1.5} /></span>
+              ) : flag ? (
+                <span className="flag flag-project" />
+              ) : null}
             </span>
             <span className="bars">
               {list.slice(0, MAX_BARS).map((i) => (
@@ -72,7 +77,7 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
 export function Legend() {
   return (
     <div className="legend mono">
-      <span><span className="flag flag-test" />TEST</span>
+      <span><span className="flag-star"><Icon name="star" size={13} stroke={1.5} /></span>TEST</span>
       <span><span className="flag flag-project" />PROJECT</span>
       <span><span className="bar legend-bar" />ITEM, BY SUBJECT</span>
     </div>

@@ -3,8 +3,9 @@ import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid from '../components/MonthGrid'
 import { ItemCard, MessageConsole, pad2, SectionLabel, TimelineItem, TopBar } from '../components/ui'
-import { addDays, fmtEyebrow, fmtLong, parseISO, relative, todayISO } from '../lib/dates'
-import { assignedOn, buildMessage, groupBySubject, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
+import { addDays, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
+import { assignedOn, buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
+import { changeLines, daySlots } from '../lib/schedule'
 
 export default function Today({ data }: { data: AppData }) {
   const [day, setDay] = useState(todayISO)
@@ -15,6 +16,12 @@ export default function Today({ data }: { data: AppData }) {
   const upcoming = upcomingFrom(data.items, day)
   const d = parseISO(day)
   const month = new Date(d.getFullYear(), d.getMonth(), 1)
+  const filesFor = (id: string) => data.materials.filter((m) => m.item_id === id)
+  // Timetable changes for the next school day go into the message, so the class hears about swaps.
+  const nextDay = nextSchoolDay(day)
+  const swaps = changeLines(daySlots(nextDay, data.timetable, data.changes))
+  // Monday of next week, for the Sunday-night preview.
+  const nextMonday = addDays(today, ((8 - parseISO(today).getDay()) % 7) || 7)
 
   return (
     <>
@@ -63,13 +70,17 @@ export default function Today({ data }: { data: AppData }) {
             ) : posted.length === 0 ? (
               <div className="empty mono">No homework posted for this day.</div>
             ) : (
-              posted.map((i) => <ItemCard key={i.id} item={i} />)
+              posted.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)
             )}
           </section>
 
           {data.user && !data.loading && (
             <div className="order-3">
-              <MessageConsole text={buildMessage(data.items, day)} reminders={upcoming.length} />
+              <MessageConsole
+                text={buildMessage(data.items, day, swaps, fmtTag(nextDay))}
+                weekText={buildWeekMessage(data.items, nextMonday)}
+                reminders={upcoming.length}
+              />
             </div>
           )}
         </div>
@@ -83,14 +94,14 @@ export default function Today({ data }: { data: AppData }) {
               </span>
               <a href="#/calendar" className="mono accent small">OPEN CALENDAR →</a>
             </div>
-            <MonthGrid month={month} items={data.items} />
+            <MonthGrid month={month} items={data.items.filter(onCalendar)} />
           </section>
 
           {upcoming.length > 0 && (
             <section className="stack order-2">
               <SectionLabel right={pad2(upcoming.length)}>COMING UP · {REMINDER_DAYS} DAYS</SectionLabel>
               <div className="timeline">
-                {upcoming.map((i) => <TimelineItem key={i.id} item={i} from={day} />)}
+                {upcoming.map((i) => <TimelineItem key={i.id} item={i} from={day} files={filesFor(i.id)} />)}
               </div>
             </section>
           )}

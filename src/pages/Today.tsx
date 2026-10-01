@@ -84,12 +84,19 @@ export default function Today({ data }: { data: AppData }) {
         </div>
 
         <div className="col">
-          <section className="card mini-cal desktop-only">
-            <div className="mini-cal-head">
-              <span className="mini-cal-title">{month.toLocaleDateString('en-GB', { month: 'long' })}</span>
-              <a href="#/calendar" className="section-link">Open calendar</a>
+          {/* Sits level with "Homework" on wide screens; hidden on phones, where the Calendar tab is a tap away. */}
+          <section className="stack desktop-only">
+            <SectionHeading action={<a href="#/calendar" className="section-link">Open calendar</a>}>
+              {month.toLocaleDateString('en-GB', { month: 'long' })}
+            </SectionHeading>
+            <div className="card month-card">
+              <MonthGrid
+                month={month}
+                items={data.items.filter(onCalendar)}
+                selected={day}
+                onSelect={(iso) => { location.hash = `#/calendar?d=${iso}` }}
+              />
             </div>
-            <MonthGrid month={month} items={data.items.filter(onCalendar)} />
           </section>
 
           {upcoming.length > 0 && (

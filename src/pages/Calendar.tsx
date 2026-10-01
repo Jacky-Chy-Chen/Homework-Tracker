@@ -6,13 +6,21 @@ import { ItemCard, SectionHeading, TopBar } from '../components/ui'
 import { onCalendar } from '../lib/homework'
 import { fmtLong, parseISO, todayISO } from '../lib/dates'
 
+/** The Today page links here as #/calendar?d=2026-10-08 to open straight on that day. */
+function dayFromHash() {
+  const q = location.hash.split('?')[1] ?? ''
+  const d = new URLSearchParams(q).get('d')
+  return d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null
+}
+
 export default function Calendar({ data }: { data: AppData }) {
   const today = todayISO()
+  const asked = dayFromHash()
   const [month, setMonth] = useState(() => {
-    const d = new Date()
+    const d = parseISO(asked ?? today)
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
-  const [selected, setSelected] = useState(today)
+  const [selected, setSelected] = useState(asked ?? today)
   const [bigOnly, setBigOnly] = useState(false)
 
   // Homework due the next school day never reaches the calendar; it lives on the Today page.

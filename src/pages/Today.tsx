@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
-import { ItemCard, MessageCard, SectionHeading, TopBar, UpcomingCard } from '../components/ui'
+import { ItemCard, MessageCard, SectionHeading, TopBar } from '../components/ui'
 import { addDays, fmtDue, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
 import { buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 import { holidayOn, makeupOn } from '../lib/holidays'
@@ -153,13 +153,6 @@ export default function Today({ data }: { data: AppData }) {
               <Legend />
             </div>
           </section>
-
-          {upcoming.length > 0 && (
-            <section className="stack order-4">
-              <SectionHeading count={upcoming.length}>Coming up</SectionHeading>
-              {upcoming.map((i) => <UpcomingCard key={i.id} item={i} from={today} files={filesFor(i.id)} />)}
-            </section>
-          )}
         </div>
       </div>
     </>

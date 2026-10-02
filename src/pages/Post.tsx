@@ -93,17 +93,11 @@ function Editor({ data }: { data: AppData }) {
   )
   // English, EC and maths are taught in sets, so each gets one chip that opens
   // its four classes rather than twelve chips crowding the row.
-  const sets = useMemo(
-    () =>
-      SUBJECT_SETS.map((g) => ({
-        ...g,
-        // Anything already posted for that subject joins its own set.
-        options: [...new Set([...g.options, ...all.filter((s) => subjectBase(s).toLowerCase() === g.label.toLowerCase())])],
-      })),
-    [all],
-  )
+  const sets = SUBJECT_SETS
+  const setLabels = new Set(sets.map((g) => g.label.toLowerCase()))
   const inASet = new Set(sets.flatMap((g) => g.options.map((o) => o.toLowerCase())))
-  const subjects = all.filter((s) => !inASet.has(s.toLowerCase()))
+  // A subject in one of the sets belongs behind its chip, never loose in the row.
+  const subjects = all.filter((s) => !setLabels.has(subjectBase(s).toLowerCase()))
   const today = todayISO()
   const current = data.items.filter((i) => i.due_date >= today)
   const past = data.items.filter((i) => i.due_date < today).reverse()

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
@@ -21,7 +21,6 @@ export default function Today({ data }: { data: AppData }) {
     const d = parseISO(dayFromHash() ?? today)
     return new Date(d.getFullYear(), d.getMonth(), 1)
   })
-  const [bigOnly, setBigOnly] = useState(false)
   const isToday = day === today
 
   // Following a #/?d=… link while the page is already open should still move the day.
@@ -52,8 +51,8 @@ export default function Today({ data }: { data: AppData }) {
   const upcoming = upcomingFrom(data.items, today)
   // Everything due on the chosen day, minus homework that was only set the day before.
   const dueThisDay = data.items.filter((i) => i.due_date === day && onCalendar(i))
-  const planned = data.items.filter(onCalendar)
-  const onGrid = bigOnly ? planned.filter((i) => i.type === 'test' || i.type === 'project') : planned
+  // One calendar, everything on it: tests, projects and longer-range homework.
+  const onGrid = data.items.filter(onCalendar)
 
   const filesFor = (id: string) => data.materials.filter((m) => m.item_id === id)
   // Timetable changes for the next school day go into the message, so the class hears about swaps.
@@ -61,18 +60,6 @@ export default function Today({ data }: { data: AppData }) {
   const swaps = changeLines(daySlots(nextDay, data.timetable, data.changes))
   const nextMonday = addDays(today, ((8 - parseISO(today).getDay()) % 7) || 7)
   const shiftMonth = (n: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + n, 1))
-
-  // On wide screens the empty "no homework" box matches the Everything /
-  // Tests & Projects switch beside it, so the two boxes share a top and a
-  // bottom line. The switch's height depends on the font, so measure it.
-  const segRef = useRef<HTMLDivElement>(null)
-  const [segHeight, setSegHeight] = useState(0)
-  useLayoutEffect(() => {
-    const measure = () => setSegHeight(segRef.current?.offsetHeight ?? 0)
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [])
 
   return (
     <>
@@ -110,7 +97,7 @@ export default function Today({ data }: { data: AppData }) {
         </div>
       )}
 
-      <div className="today-grid" style={segHeight ? ({ '--seg-h': `${segHeight}px` } as React.CSSProperties) : undefined}>
+      <div className="today-grid">
         <div className="col">
           <section className="stack order-1">
             <SectionHeading count={posted.length}>{isToday ? 'Homework' : 'Posted this day'}</SectionHeading>
@@ -154,16 +141,9 @@ export default function Today({ data }: { data: AppData }) {
               {month.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
             </SectionHeading>
 
-            <div className="cal-block">
-            <div className="seg seg-2" ref={segRef} role="radiogroup" aria-label="What to show on the calendar">
-              <button role="radio" aria-checked={!bigOnly} className={!bigOnly ? 'on' : ''} onClick={() => setBigOnly(false)}>Everything</button>
-              <button role="radio" aria-checked={bigOnly} className={bigOnly ? 'on' : ''} onClick={() => setBigOnly(true)}>Tests &amp; Projects</button>
-            </div>
-
             <div className="card month-card">
               <MonthGrid month={month} items={onGrid} selected={day} onSelect={selectDay} />
               <Legend />
-            </div>
             </div>
           </section>
 

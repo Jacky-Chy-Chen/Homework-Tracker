@@ -104,13 +104,6 @@ export default function Today({ data }: { data: AppData }) {
         </div>
       </header>
 
-      {!data.loading && (
-        <div className="status">
-          <span><span className="dot dot-accent" />{dueList.length} {isToday ? 'to hand in' : 'due'}</span>
-          <span><span className="dot dot-warn" />{upcoming.length} coming up</span>
-        </div>
-      )}
-
       <div className="today-grid">
         <div className="col">
           <section className="stack order-1">

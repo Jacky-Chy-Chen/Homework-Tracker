@@ -162,21 +162,6 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 .eyebrow { font-size: 14px; font-weight: 500; color: var(--muted); }
 .head-actions { display: flex; align-items: center; gap: 8px; flex: none; }
 
-.status { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-.status > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-2);
-}
-.status .dot.dot-accent { background: var(--accent); }
-.status .dot.dot-warn { background: var(--warn); }
 
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 36px; }
 .icon-btn.sm { width: 36px; height: 36px; border-radius: 10px; }

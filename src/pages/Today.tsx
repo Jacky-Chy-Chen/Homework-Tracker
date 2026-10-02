@@ -3,7 +3,7 @@ import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
 import { ItemCard, MessageCard, SectionHeading, TopBar } from '../components/ui'
-import { addDays, fmtDue, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
+import { addDays, fmtDue, fmtEyebrow, fmtHead, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
 import { buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 import { holidayOn, makeupOn } from '../lib/holidays'
 import { changeLines, daySlots } from '../lib/schedule'
@@ -85,7 +85,7 @@ export default function Today({ data }: { data: AppData }) {
             {dayHoliday && ` · ${dayHoliday.name} holiday`}
             {dayMakeup && ' · make-up school day'}
           </div>
-          <h1>{isToday ? 'Today' : fmtLong(day)}</h1>
+          <h1>{isToday ? 'Today' : fmtHead(day)}</h1>
         </div>
         <div className="head-actions">
           {!isToday && <button className="btn-quiet" onClick={() => selectDay(today)}>Today</button>}

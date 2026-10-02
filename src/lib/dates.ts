@@ -44,6 +44,10 @@ export const fmtShort = (iso: string) => {
 export const fmtLong = (iso: string) =>
   parseISO(iso).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
+/** A page heading: 'Wed, Oct 14'. The full date sits above it. */
+export const fmtHead = (iso: string) =>
+  parseISO(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+
 export const relative = (from: string, to: string) => {
   const n = daysBetween(from, to)
   if (n === 0) return 'today'

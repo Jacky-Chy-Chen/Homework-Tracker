@@ -4,7 +4,7 @@ import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
 import { ItemCard, MessageCard, SectionHeading, TopBar, UpcomingCard } from '../components/ui'
 import { addDays, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
-import { assignedOn, buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
+import { buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 import { changeLines, daySlots } from '../lib/schedule'
 
 /** A link can open a particular date: #/?d=2026-10-08 */
@@ -46,11 +46,10 @@ export default function Today({ data }: { data: AppData }) {
     location.replace(iso === today ? '#/' : `#/?d=${iso}`)
   }
 
-  // Subjects stay together, in the order the chat message uses.
-  const posted = groupBySubject(assignedOn(data.items, day)).flatMap(([, list]) => list)
   const upcoming = upcomingFrom(data.items, today)
-  // Everything due on the chosen day, minus homework that was only set the day before.
-  const dueThisDay = data.items.filter((i) => i.due_date === day && onCalendar(i))
+  // The day's list answers one question: what is due on this day? Subjects stay
+  // together, in the order the chat message uses.
+  const dueThisDay = groupBySubject(data.items.filter((i) => i.due_date === day)).flatMap(([, list]) => list)
   // One calendar, everything on it: tests, projects and longer-range homework.
   const onGrid = data.items.filter(onCalendar)
 
@@ -92,7 +91,7 @@ export default function Today({ data }: { data: AppData }) {
 
       {!data.loading && (
         <div className="status">
-          <span><span className="dot dot-accent" />{posted.length} {isToday ? 'new today' : 'posted'}</span>
+          <span><span className="dot dot-accent" />{dueThisDay.length} {isToday ? 'due today' : 'due'}</span>
           <span><span className="dot dot-warn" />{upcoming.length} coming up</span>
         </div>
       )}
@@ -100,22 +99,15 @@ export default function Today({ data }: { data: AppData }) {
       <div className="today-grid">
         <div className="col">
           <section className="stack order-1">
-            <SectionHeading count={posted.length}>{isToday ? 'Homework' : 'Posted this day'}</SectionHeading>
+            <SectionHeading count={dueThisDay.length}>{isToday ? 'Due today' : 'Due this day'}</SectionHeading>
             {data.loading ? (
               <div className="empty">Loading…</div>
-            ) : posted.length === 0 ? (
-              <div className="empty">No homework posted for this day.</div>
+            ) : dueThisDay.length === 0 ? (
+              <div className="empty">Nothing due on this day.</div>
             ) : (
-              posted.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)
+              dueThisDay.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)
             )}
           </section>
-
-          {dueThisDay.length > 0 && (
-            <section className="stack order-2">
-              <SectionHeading count={dueThisDay.length}>Due this day</SectionHeading>
-              {dueThisDay.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)}
-            </section>
-          )}
 
           {data.user && !data.loading && (
             <div className="order-5">

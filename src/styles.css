@@ -453,6 +453,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); font-size: 12px; color: var(--muted); }
 .legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.legend-note { flex-basis: 100%; margin: 0; line-height: 1.5; }
 
 .cal-layout { display: flex; flex-direction: column; gap: 26px; margin-top: 18px; }
 

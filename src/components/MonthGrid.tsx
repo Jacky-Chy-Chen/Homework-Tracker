@@ -82,6 +82,10 @@ export function Legend() {
         <span className="mark-dot" style={{ background: 'var(--muted)' }} />
         One item due, by subject
       </span>
+      <p className="legend-note">
+        A dot for each project, test or longer piece of homework due that day, in its subject's colour. Homework set for the
+        next school day stays off the calendar — it is in the day's list instead.
+      </p>
     </div>
   )
 }

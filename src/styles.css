@@ -428,8 +428,7 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
   font: inherit;
   color: inherit;
 }
-.month-cell:not(.static):hover { background: var(--surface-2); }
-.month-cell.selected { background: var(--accent-soft); border-color: var(--accent); }
+.month-cell:not(.static):hover { border-color: var(--accent-line); }
 /* School days and days off, each with its own ground. */
 .month-cell.school { background: var(--cal-school); }
 .month-cell.school .month-num { color: var(--cal-school-ink); }
@@ -437,14 +436,13 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 .month-cell.off .month-num { color: var(--cal-off-ink); }
 .month-cell.out { background: transparent; }
 .month-cell.out .month-num { color: var(--line); }
-.month-cell.selected { background: var(--accent-soft); }
+/* The chosen day keeps its own ground and takes an outline instead. */
+.month-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 /* Today keeps its filled circle whatever ground it sits on. */
 .month-cell .month-num.today { color: var(--on-accent); }
 .legend-swatch { width: 11px; height: 11px; border-radius: 4px; }
 .school-swatch { background: var(--cal-school); border: 1px solid var(--cal-school-ink); }
 .off-swatch { background: var(--cal-off); border: 1px solid var(--cal-off-ink); }
-/* Selected and today at once: a ring around the filled circle, so both still read. */
-.month-cell.selected .month-num.today { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 4px var(--accent); }
 .month-num {
   display: flex;
   align-items: center;

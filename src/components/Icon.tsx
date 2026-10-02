@@ -8,6 +8,7 @@ const PATHS = {
   ),
   plus: <path d="M12 5v14M5 12h14" />,
   left: <path d="M15 18l-6-6 6-6" />,
+  down: <path d="M6 9l6 6 6-6" />,
   right: <path d="M9 18l6-6-6-6" />,
   arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   copy: (

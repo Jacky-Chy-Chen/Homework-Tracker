@@ -3,7 +3,7 @@ import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import { ItemRow, SectionHeading, ThemeToggle, TopBar, Wordmark } from '../components/ui'
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
-import { subjectColor, TYPE_LABEL } from '../lib/homework'
+import { subjectBase, SUBJECT_SETS, subjectColor, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type ItemType, type NewItem } from '../lib/store'
 
 const TYPES: ItemType[] = ['daily', 'project', 'test', 'other']
@@ -79,6 +79,7 @@ function Editor({ data }: { data: AppData }) {
   const [form, setForm] = useState<NewItem>(blank)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [typingSubject, setTypingSubject] = useState(false)
+  const [openSet, setOpenSet] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [flash, setFlash] = useState<string | null>(null)
@@ -86,15 +87,29 @@ function Editor({ data }: { data: AppData }) {
 
   // Every class on the timetable is offered as a subject, so the usual ones are
   // there from the start; anything typed by hand joins them.
-  const subjects = useMemo(
+  const all = useMemo(
     () => [...new Set([...data.timetable.flat(), ...data.items.map((i) => i.subject)].filter((s): s is string => !!s))].sort(),
     [data.timetable, data.items],
   )
+  // English, EC and maths are taught in sets, so each gets one chip that opens
+  // its four classes rather than twelve chips crowding the row.
+  const sets = useMemo(
+    () =>
+      SUBJECT_SETS.map((g) => ({
+        ...g,
+        // Anything already posted for that subject joins its own set.
+        options: [...new Set([...g.options, ...all.filter((s) => subjectBase(s).toLowerCase() === g.label.toLowerCase())])],
+      })),
+    [all],
+  )
+  const inASet = new Set(sets.flatMap((g) => g.options.map((o) => o.toLowerCase())))
+  const subjects = all.filter((s) => !inASet.has(s.toLowerCase()))
   const today = todayISO()
   const current = data.items.filter((i) => i.due_date >= today)
   const past = data.items.filter((i) => i.due_date < today).reverse()
   // No subjects yet (first use) or a new one being typed: show the text box.
-  const showSubjectInput = typingSubject || subjects.length === 0 || (form.subject !== '' && !subjects.includes(form.subject))
+  const showSubjectInput =
+    typingSubject || (form.subject !== '' && !subjects.includes(form.subject) && !inASet.has(form.subject.toLowerCase()))
   const gap = daysBetween(form.assigned_date, form.due_date)
 
   const set = <K extends keyof NewItem>(k: K, v: NewItem[K]) => setForm((f) => ({ ...f, [k]: v }))
@@ -109,6 +124,7 @@ function Editor({ data }: { data: AppData }) {
 
   const pickSubject = (s: string) => {
     setTypingSubject(false)
+    setOpenSet(null)
     set('subject', s)
   }
 
@@ -198,8 +214,7 @@ function Editor({ data }: { data: AppData }) {
 
           <div className="field">
             <span className="field-label">Subject</span>
-            {subjects.length > 0 && (
-              <div className="chips">
+            <div className="chips">
                 {subjects.map((s) => {
                   const on = !typingSubject && form.subject === s
                   const c = subjectColor(s)
@@ -217,9 +232,49 @@ function Editor({ data }: { data: AppData }) {
                     </button>
                   )
                 })}
-                <button type="button" className={`chip chip-new ${showSubjectInput ? 'on' : ''}`} onClick={() => { setTypingSubject(true); set('subject', '') }}>
+                {sets.map((g) => {
+                  const chosen = g.options.find((o) => o === form.subject && !typingSubject)
+                  const c = subjectColor(g.label)
+                  const open = openSet === g.label
+                  return (
+                    <button
+                      type="button"
+                      key={g.label}
+                      className={`chip ${chosen ? 'on' : ''}`}
+                      aria-expanded={open}
+                      style={chosen ? { borderColor: c, background: `${c}24` } : undefined}
+                      onClick={() => setOpenSet(open ? null : g.label)}
+                    >
+                      <span className="swatch" style={{ background: c }} />
+                      {chosen ?? g.label}
+                      <Icon name="down" size={12} stroke={2.2} />
+                    </button>
+                  )
+                })}
+                <button type="button" className={`chip chip-new ${showSubjectInput ? 'on' : ''}`} onClick={() => { setTypingSubject(true); setOpenSet(null); set('subject', '') }}>
                   <Icon name="plus" size={12} stroke={2.4} />New
                 </button>
+            </div>
+            {openSet && (
+              <div className="chips chips-sub" role="group" aria-label={`${openSet} classes`}>
+                {sets
+                  .find((g) => g.label === openSet)!
+                  .options.map((o) => {
+                    const on = !typingSubject && form.subject === o
+                    const c = subjectColor(o)
+                    return (
+                      <button
+                        type="button"
+                        key={o}
+                        className={`chip ${on ? 'on' : ''}`}
+                        aria-pressed={on}
+                        style={on ? { borderColor: c, background: `${c}24` } : undefined}
+                        onClick={() => pickSubject(o)}
+                      >
+                        {o}
+                      </button>
+                    )
+                  })}
               </div>
             )}
             {showSubjectInput && (

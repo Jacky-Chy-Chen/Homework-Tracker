@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { fmtLong, toISO, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
-import { holidayOn, makeupOn } from '../lib/holidays'
+import { holidayOn, isSchoolDay, makeupOn } from '../lib/holidays'
 import Icon from './Icon'
 import type { Item } from '../lib/store'
 
@@ -51,8 +51,7 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
           inMonth ? '' : 'out',
           iso === selected ? 'selected' : '',
           onSelect ? '' : 'static',
-          holiday ? 'holiday' : '',
-          makeup ? 'makeup' : '',
+          isSchoolDay(iso) ? 'school' : 'off',
         ]
         const body = (
           <>
@@ -94,17 +93,17 @@ export function Legend() {
         One item due, by subject
       </span>
       <span>
-        <span className="legend-swatch holiday-swatch" />
-        Public holiday
+        <span className="legend-swatch school-swatch" />
+        School day
       </span>
       <span>
-        <span className="legend-swatch makeup-swatch" />
-        Make-up school day
+        <span className="legend-swatch off-swatch" />
+        Weekend or holiday
       </span>
       <p className="legend-note">
         A dot for each project, test or longer piece of homework due that day, in its subject's colour. Homework set for the
-        next school day stays off the calendar — it is in the day's list instead. Shaded days are the national holidays; a
-        make-up day is a weekend the whole country works to pay for one of them.
+        next school day stays off the calendar — it is in the day's list instead. Green days are school days, sand days are
+        weekends and national holidays; a make-up weekend counts as a school day.
       </p>
     </div>
   )

@@ -90,6 +90,9 @@ export function buildWeekMessage(items: Item[], from: string) {
 const FIXED: Record<string, string> = {
   math: '#4FD1C5',
   english: '#F6C85F',
+  // The split English and maths sets, so every EE(…) card looks like every other.
+  ee: '#F6C85F',
+  ec: '#E8A33D',
   chemistry: '#FF8FB1',
   history: '#7AA2F7',
   biology: '#9ECE6A',
@@ -105,8 +108,18 @@ const FIXED: Record<string, string> = {
 }
 const PALETTE = ['#4FD1C5', '#F6C85F', '#FF8FB1', '#7AA2F7', '#9ECE6A', '#B69CFF', '#FF9E64', '#73DACA', '#E0AF68', '#BB9AF7']
 
+/** 'Math(S+1)' and 'Math' are the same subject as far as colour goes. */
+export const subjectBase = (subject: string) => subject.trim().split('(')[0].trim()
+
+/** The split sets: one dropdown each on the Add page, in the order they are taught. */
+export const SUBJECT_SETS: { label: string; options: string[] }[] = [
+  { label: 'EE', options: ['EE(H)', 'EE(S+1)', 'EE(S+2)', 'EE(S)'] },
+  { label: 'EC', options: ['EC(H)', 'EC(S+1)', 'EC(S+2)', 'EC(S)'] },
+  { label: 'Math', options: ['Math(S+1)', 'Math(S+2)', 'Math(S+3)', 'Math(S)'] },
+]
+
 export function subjectColor(subject: string) {
-  const fixed = FIXED[subject.trim().toLowerCase()]
+  const fixed = FIXED[subjectBase(subject).toLowerCase()]
   if (fixed) return fixed
   let h = 0
   for (const c of subject.trim().toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0

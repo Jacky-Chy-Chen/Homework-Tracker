@@ -34,7 +34,7 @@ export default function Materials({ data }: { data: AppData }) {
     <>
       <TopBar editor={!!data.user} />
 
-      <header className="page-head">
+      <header className="page-head" data-tour="files">
         <div className="page-head-text">
           <div className="eyebrow">Review sheets, notes, slides</div>
           <h1>Files</h1>

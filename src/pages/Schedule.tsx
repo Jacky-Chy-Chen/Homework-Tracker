@@ -51,7 +51,7 @@ export default function Schedule({ data }: { data: AppData }) {
         </div>
       </header>
 
-      <div className="day-pills">
+      <div className="day-pills" data-tour="slots">
         {days.map((d) => (
           <button key={d} className={`day-pill ${view === 'day' && d === selected ? 'on' : ''}`} onClick={() => pick(d)}>
             <span className="day-pill-name">{DAY_NAMES[weekdayIndex(d)!].slice(0, 3)}</span>

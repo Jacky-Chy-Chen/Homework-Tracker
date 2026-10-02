@@ -77,7 +77,7 @@ export default function Today({ data }: { data: AppData }) {
     <>
       <TopBar editor={!!data.user} />
 
-      <header className="page-head">
+      <header className="page-head" data-tour="day-head">
         <div className="page-head-text">
           <div className="eyebrow">
             {fmtEyebrow(day)}
@@ -106,7 +106,7 @@ export default function Today({ data }: { data: AppData }) {
 
       <div className="today-grid">
         <div className="col">
-          <section className="stack order-1">
+          <section className="stack order-1" data-tour="due-list">
             <SectionHeading count={dueList.length}>{listTitle}</SectionHeading>
             {data.loading ? (
               <div className="empty">Loading…</div>
@@ -118,7 +118,7 @@ export default function Today({ data }: { data: AppData }) {
           </section>
 
           {data.user && !data.loading && (
-            <div className="order-5">
+            <div className="order-5" data-tour="message">
               <MessageCard
                 text={buildMessage(data.items, day, swaps, fmtTag(nextDay))}
                 weekText={buildWeekMessage(data.items, nextMonday)}
@@ -129,7 +129,7 @@ export default function Today({ data }: { data: AppData }) {
         </div>
 
         <div className="col">
-          <section className="stack order-3">
+          <section className="stack order-3" data-tour="calendar">
             <SectionHeading
               action={
                 <div className="head-actions">

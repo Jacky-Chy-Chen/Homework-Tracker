@@ -47,6 +47,14 @@ export function TopBar({ editor }: { editor?: boolean }) {
     <div className="topbar">
       <Wordmark />
       <div className="topbar-right">
+        <button
+          className="icon-btn"
+          data-tour="help"
+          aria-label="Open the guide"
+          onClick={() => window.dispatchEvent(new Event('classboard:guide'))}
+        >
+          <Icon name="help" size={19} stroke={1.8} />
+        </button>
         {editor ? (
           <span className="pill-editor">
             <span className="dot" />

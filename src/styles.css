@@ -864,3 +864,37 @@ button.week-cell:hover { background: var(--surface-2); }
   .sheet-backdrop { align-items: center; padding: 24px; }
   .sheet { border-radius: 22px; }
 }
+
+/* ---------- Guided tour ---------- */
+
+.tour { position: fixed; inset: 0; z-index: 90; }
+.tour-shade { position: absolute; inset: 0; background: rgba(8, 12, 16, 0.55); }
+/* The lit element: a hole punched through the shade by one very large shadow. */
+.tour-hole {
+  position: fixed;
+  z-index: 1;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 9999px rgba(8, 12, 16, 0.55), 0 0 0 2px var(--accent);
+  pointer-events: none;
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+.tour-card {
+  position: fixed;
+  z-index: 2;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(380px, calc(100vw - 32px));
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lift);
+  max-height: 72vh;
+  overflow-y: auto;
+}
+.tour-card.middle { top: 50%; transform: translate(-50%, -50%); }
+.tour-card h3 { margin: 6px 0 8px; font-size: 18px; letter-spacing: -0.015em; }
+.tour-card p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-2); }
+.tour-step { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
+.tour-buttons { display: flex; gap: 8px; }

@@ -194,7 +194,7 @@ function Editor({ data }: { data: AppData }) {
       </header>
 
       <div className="post-layout">
-        <form className="form" onSubmit={submit}>
+        <form className="form" onSubmit={submit} data-tour="form">
           <div className="field">
             <span className="field-label">Type</span>
             <div className="seg seg-4" role="radiogroup" aria-label="Type">

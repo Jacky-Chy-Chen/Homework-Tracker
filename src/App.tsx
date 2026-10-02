@@ -8,6 +8,7 @@ import Today from './pages/Today'
 import Schedule from './pages/Schedule'
 import Materials from './pages/Materials'
 import Post from './pages/Post'
+import Tour, { tourSeen } from './components/Tour'
 
 // Hash routing: works on any static host and inside WeChat's browser.
 type Route = 'today' | 'schedule' | 'materials' | 'post'
@@ -55,6 +56,9 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<string | null>(null)
+  // The guide opens itself the first time someone lands here, and lives behind
+  // the Guide button after that.
+  const [tour, setTour] = useState(() => !tourSeen())
 
   const fail = (e: unknown) => setError((e as Error).message)
 
@@ -99,12 +103,17 @@ export default function App() {
       legacy()
       setRoute(readRoute())
     }
+    const openGuide = () => setTour(true)
+    window.addEventListener('classboard:guide', openGuide)
     window.addEventListener('hashchange', onHash)
     reload()
     reloadSchedule()
     reloadMaterials()
     store.currentUser().then(setUser)
-    return () => window.removeEventListener('hashchange', onHash)
+    return () => {
+      window.removeEventListener('hashchange', onHash)
+      window.removeEventListener('classboard:guide', openGuide)
+    }
   }, [reload, reloadSchedule, reloadMaterials])
 
   useEffect(() => {
@@ -144,6 +153,10 @@ export default function App() {
             ))}
           </nav>
           <div className="sidebar-bottom">
+            <button className="theme-row" data-tour="help" onClick={() => setTour(true)}>
+              <Icon name="help" size={18} stroke={1.8} />
+              Guide
+            </button>
             <ThemeToggle row />
             {user && store.mode === 'supabase' ? (
               <div className="sidebar-user">
@@ -171,6 +184,8 @@ export default function App() {
           </footer>
         )}
       </main>
+
+      {tour && <Tour editor={!!user} onClose={() => setTour(false)} />}
 
       {!signingIn && (
         <nav className="tabs">

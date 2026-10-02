@@ -3,7 +3,7 @@ import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
 import { ItemCard, MessageCard, SectionHeading, TopBar, UpcomingCard } from '../components/ui'
-import { addDays, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
+import { addDays, fmtDue, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
 import { buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 import { changeLines, daySlots } from '../lib/schedule'
 
@@ -47,9 +47,15 @@ export default function Today({ data }: { data: AppData }) {
   }
 
   const upcoming = upcomingFrom(data.items, today)
-  // The day's list answers one question: what is due on this day? Subjects stay
-  // together, in the order the chat message uses.
-  const dueThisDay = groupBySubject(data.items.filter((i) => i.due_date === day)).flatMap(([, list]) => list)
+  // On today the list looks ahead: what has to be handed in the next school day,
+  // which is what the class needs tonight. On any other day it is that day's own
+  // work, whether still to come or already gone. Subjects stay together, in the
+  // order the chat message uses.
+  const listDay = isToday ? nextSchoolDay(today) : day
+  const dueList = groupBySubject(data.items.filter((i) => i.due_date === listDay)).flatMap(([, list]) => list)
+  const listTitle = isToday ? fmtDue(today, listDay) : day < today ? 'Was due this day' : 'Due this day'
+  // 'tomorrow' reads on its own; a weekday needs an 'on' in front of it.
+  const listWhen = listTitle.replace(/^Due (?!today|tomorrow)/, 'on ').replace(/^Due /, '')
   // One calendar, everything on it: tests, projects and longer-range homework.
   const onGrid = data.items.filter(onCalendar)
 
@@ -91,7 +97,7 @@ export default function Today({ data }: { data: AppData }) {
 
       {!data.loading && (
         <div className="status">
-          <span><span className="dot dot-accent" />{dueThisDay.length} {isToday ? 'due today' : 'due'}</span>
+          <span><span className="dot dot-accent" />{dueList.length} {isToday ? 'to hand in' : 'due'}</span>
           <span><span className="dot dot-warn" />{upcoming.length} coming up</span>
         </div>
       )}
@@ -99,13 +105,13 @@ export default function Today({ data }: { data: AppData }) {
       <div className="today-grid">
         <div className="col">
           <section className="stack order-1">
-            <SectionHeading count={dueThisDay.length}>{isToday ? 'Due today' : 'Due this day'}</SectionHeading>
+            <SectionHeading count={dueList.length}>{listTitle}</SectionHeading>
             {data.loading ? (
               <div className="empty">Loading…</div>
-            ) : dueThisDay.length === 0 ? (
-              <div className="empty">Nothing due on this day.</div>
+            ) : dueList.length === 0 ? (
+              <div className="empty">{isToday ? `Nothing to hand in ${listWhen}.` : 'Nothing due on this day.'}</div>
             ) : (
-              dueThisDay.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)
+              dueList.map((i) => <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />)
             )}
           </section>
 

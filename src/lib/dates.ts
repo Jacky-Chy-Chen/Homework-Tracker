@@ -1,3 +1,5 @@
+import { isSchoolDay } from './holidays'
+
 // All dates are local calendar days stored as 'YYYY-MM-DD' strings.
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -22,10 +24,12 @@ export const addDays = (iso: string, n: number) => {
 export const daysBetween = (a: string, b: string) =>
   Math.round((parseISO(b).getTime() - parseISO(a).getTime()) / 86400000)
 
-/** Next school day: Fri/Sat → Monday, otherwise tomorrow. */
+/** The next day the class is at school, stepping over weekends and holidays. */
 export const nextSchoolDay = (iso: string) => {
-  const dow = parseISO(iso).getDay()
-  return addDays(iso, dow === 5 ? 3 : dow === 6 ? 2 : 1)
+  let d = addDays(iso, 1)
+  // A long holiday plus its weekends is nine days at most; stop either way.
+  for (let i = 0; i < 20 && !isSchoolDay(d); i++) d = addDays(d, 1)
+  return d
 }
 
 export const weekday = (iso: string) => WEEKDAYS[parseISO(iso).getDay()]

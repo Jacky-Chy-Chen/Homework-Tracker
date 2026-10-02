@@ -5,6 +5,7 @@ import MonthGrid, { Legend } from '../components/MonthGrid'
 import { ItemCard, MessageCard, SectionHeading, TopBar, UpcomingCard } from '../components/ui'
 import { addDays, fmtDue, fmtEyebrow, fmtLong, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
 import { buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
+import { holidayOn, makeupOn } from '../lib/holidays'
 import { changeLines, daySlots } from '../lib/schedule'
 
 /** A link can open a particular date: #/?d=2026-10-08 */
@@ -51,6 +52,8 @@ export default function Today({ data }: { data: AppData }) {
   // which is what the class needs tonight. On any other day it is that day's own
   // work, whether still to come or already gone. Subjects stay together, in the
   // order the chat message uses.
+  const dayHoliday = holidayOn(day)
+  const dayMakeup = makeupOn(day)
   const listDay = isToday ? nextSchoolDay(today) : day
   const dueList = groupBySubject(data.items.filter((i) => i.due_date === listDay)).flatMap(([, list]) => list)
   const listTitle = isToday
@@ -79,6 +82,8 @@ export default function Today({ data }: { data: AppData }) {
           <div className="eyebrow">
             {fmtEyebrow(day)}
             {!isToday && ` · ${relative(today, day)}`}
+            {dayHoliday && ` · ${dayHoliday.name} holiday`}
+            {dayMakeup && ' · make-up school day'}
           </div>
           <h1>{isToday ? 'Today' : fmtLong(day)}</h1>
         </div>

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { fmtLong, toISO, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
+import { holidayOn, makeupOn } from '../lib/holidays'
 import Icon from './Icon'
 import type { Item } from '../lib/store'
 
@@ -43,7 +44,16 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
       {cells.map(({ iso, day, inMonth }) => {
         const list = byDue.get(iso) ?? []
         const hasTest = list.some((i) => i.type === 'test')
-        const cls = ['month-cell', inMonth ? '' : 'out', iso === selected ? 'selected' : '', onSelect ? '' : 'static']
+        const holiday = holidayOn(iso)
+        const makeup = makeupOn(iso)
+        const cls = [
+          'month-cell',
+          inMonth ? '' : 'out',
+          iso === selected ? 'selected' : '',
+          onSelect ? '' : 'static',
+          holiday ? 'holiday' : '',
+          makeup ? 'makeup' : '',
+        ]
         const body = (
           <>
             <span className={`month-num ${iso === today ? 'today' : ''}`}>{day}</span>
@@ -58,7 +68,8 @@ export default function MonthGrid({ month, items, selected, onSelect }: Props) {
             </span>
           </>
         )
-        const label = `${fmtLong(iso)}: ${list.length} item${list.length === 1 ? '' : 's'} due`
+        const note = holiday ? `, ${holiday.name} holiday` : makeup ? ', make-up school day' : ''
+        const label = `${fmtLong(iso)}: ${list.length} item${list.length === 1 ? '' : 's'} due${note}`
         return onSelect ? (
           <button key={iso} className={cls.join(' ')} onClick={() => onSelect(iso)} aria-label={label} aria-pressed={iso === selected}>
             {body}
@@ -82,9 +93,18 @@ export function Legend() {
         <span className="mark-dot" style={{ background: 'var(--muted)' }} />
         One item due, by subject
       </span>
+      <span>
+        <span className="legend-swatch holiday-swatch" />
+        Public holiday
+      </span>
+      <span>
+        <span className="legend-swatch makeup-swatch" />
+        Make-up school day
+      </span>
       <p className="legend-note">
         A dot for each project, test or longer piece of homework due that day, in its subject's colour. Homework set for the
-        next school day stays off the calendar — it is in the day's list instead.
+        next school day stays off the calendar — it is in the day's list instead. Shaded days are the national holidays; a
+        make-up day is a weekend the whole country works to pay for one of them.
       </p>
     </div>
   )

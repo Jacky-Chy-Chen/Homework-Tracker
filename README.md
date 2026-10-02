@@ -57,6 +57,7 @@ WeChat — pick a host classmates can actually open, then pin the link in the gr
 - `src/lib/homework.ts` — "coming up" rules and the group-chat message text
 - `src/lib/dates.ts` — local `YYYY-MM-DD` date helpers
 - `src/lib/schedule.ts` — bell times, the printed timetable, and how changes are applied
+- `src/lib/holidays.ts` — the State Council's holiday and make-up days; update it each autumn
 - `src/pages/` — Today (includes the calendar), Schedule, Materials, Post (sign-in lives in Post)
 - `src/components/` — shared UI (cards, timeline, month grid, icons)
 - `src/styles.css` — the theme; every colour is a CSS variable at the top, light and dark

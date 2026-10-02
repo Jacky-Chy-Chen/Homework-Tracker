@@ -423,6 +423,15 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 .month-cell:not(.static):hover { background: var(--surface-2); }
 .month-cell.out .month-num { color: var(--line); }
 .month-cell.selected { background: var(--accent-soft); border-color: var(--accent); }
+/* Public holidays and the weekends worked to pay for them. */
+.month-cell.holiday { background: var(--warn-soft); }
+.month-cell.holiday .month-num { color: var(--warn); }
+.month-cell.makeup { background: var(--line-soft); }
+.month-cell.holiday.selected,
+.month-cell.makeup.selected { background: var(--accent-soft); }
+.legend-swatch { width: 11px; height: 11px; border-radius: 4px; }
+.holiday-swatch { background: var(--warn-soft); border: 1px solid var(--warn); }
+.makeup-swatch { background: var(--line-soft); border: 1px solid var(--line); }
 /* Selected and today at once: a ring around the filled circle, so both still read. */
 .month-cell.selected .month-num.today { box-shadow: 0 0 0 2px var(--accent-soft), 0 0 0 4px var(--accent); }
 .month-num {

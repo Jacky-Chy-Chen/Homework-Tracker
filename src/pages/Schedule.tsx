@@ -4,6 +4,7 @@ import Icon from '../components/Icon'
 import { SectionHeading, TopBar } from '../components/ui'
 import { addDays, fmtLong, fmtTag, parseISO, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
+import { holidayOn, makeupOn } from '../lib/holidays'
 import { CLASS_INFO, DAY_NAMES, daySlots, PERIODS, weekdayIndex } from '../lib/schedule'
 import { store, type Timetable } from '../lib/store'
 
@@ -115,10 +116,25 @@ export default function Schedule({ data }: { data: AppData }) {
 
 function DayList({ date, data, onEdit }: { date: string; data: AppData; onEdit: (period: number) => void }) {
   const slots = daySlots(date, data.timetable, data.changes)
-  if (slots.length === 0) return <div className="empty" style={{ marginTop: 16 }}>No classes on this day.</div>
+  const holiday = holidayOn(date)
+  const makeup = makeupOn(date)
+  if (holiday) return <div className="empty" style={{ marginTop: 16 }}>{holiday.name} holiday — no school on this day.</div>
+  if (slots.length === 0)
+    return (
+      <div className="empty" style={{ marginTop: 16 }}>
+        {makeup
+          ? `Make-up school day for the ${makeup.name} holiday — the school decides which day's lessons run.`
+          : 'No classes on this day.'}
+      </div>
+    )
 
   return (
     <div className="slots">
+      {makeup && (
+        <div className="empty">
+          Make-up school day for the {makeup.name} holiday. The school decides which day's lessons run — check with your teacher.
+        </div>
+      )}
       {slots.map((s) => {
         const color = s.subject ? subjectColor(s.subject) : 'var(--line)'
         const body = (

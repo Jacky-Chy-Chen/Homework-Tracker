@@ -84,7 +84,12 @@ function Editor({ data }: { data: AppData }) {
   const [flash, setFlash] = useState<string | null>(null)
   const [showPast, setShowPast] = useState(false)
 
-  const subjects = useMemo(() => [...new Set(data.items.map((i) => i.subject))].sort(), [data.items])
+  // Every class on the timetable is offered as a subject, so the usual ones are
+  // there from the start; anything typed by hand joins them.
+  const subjects = useMemo(
+    () => [...new Set([...data.timetable.flat(), ...data.items.map((i) => i.subject)].filter((s): s is string => !!s))].sort(),
+    [data.timetable, data.items],
+  )
   const today = todayISO()
   const current = data.items.filter((i) => i.due_date >= today)
   const past = data.items.filter((i) => i.due_date < today).reverse()

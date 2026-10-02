@@ -53,9 +53,13 @@ export default function Today({ data }: { data: AppData }) {
   // order the chat message uses.
   const listDay = isToday ? nextSchoolDay(today) : day
   const dueList = groupBySubject(data.items.filter((i) => i.due_date === listDay)).flatMap(([, list]) => list)
-  const listTitle = isToday ? fmtDue(today, listDay) : day < today ? 'Was due this day' : 'Due this day'
+  const listTitle = isToday
+    ? `Due next school day (${fmtTag(listDay)})`
+    : day < today
+      ? 'Was due this day'
+      : 'Due this day'
   // 'tomorrow' reads on its own; a weekday needs an 'on' in front of it.
-  const listWhen = listTitle.replace(/^Due (?!today|tomorrow)/, 'on ').replace(/^Due /, '')
+  const listWhen = fmtDue(today, listDay).replace(/^Due (?!today|tomorrow)/, 'on ').replace(/^Due /, '')
   // One calendar, everything on it: tests, projects and longer-range homework.
   const onGrid = data.items.filter(onCalendar)
 

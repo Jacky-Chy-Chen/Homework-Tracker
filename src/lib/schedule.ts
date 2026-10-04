@@ -41,7 +41,7 @@ export const DEFAULT_TIMETABLE: (string | null)[][] = [
   ['Civics', 'Physics', 'English', 'English', 'Chinese', 'Math', null, null, null],
 ]
 
-export const CLASS_INFO = { grade: 'G8 (5)', room: '307', teacher: '谢倩', term: '2026 · Term 1' }
+export const CLASS_INFO = { grade: 'G8 (5)', room: '307', teacher: 'Ms. Monica', term: '2026 · Term 1' }
 
 /** A change to one period on one date. `subject: null` means the class is cancelled. */
 /** A swap across days keeps the partner's date in `note`: the table has no column for it. */

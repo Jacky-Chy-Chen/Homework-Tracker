@@ -41,7 +41,7 @@ export default function Schedule({ data }: { data: AppData }) {
 
       <header className="page-head">
         <div className="page-head-text">
-          <div className="eyebrow">Room {CLASS_INFO.room} · {CLASS_INFO.term}</div>
+          <div className="eyebrow">Room {CLASS_INFO.room} · {CLASS_INFO.teacher} · {CLASS_INFO.term}</div>
           <h1>Classes</h1>
         </div>
         <div className="head-actions">

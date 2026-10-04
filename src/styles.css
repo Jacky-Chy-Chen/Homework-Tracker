@@ -898,3 +898,9 @@ button.week-cell:hover { background: var(--surface-2); }
 .tour-step { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
 .tour-buttons { display: flex; gap: 8px; }
+
+/* People: one row per account, with what they may do. */
+.person-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; }
+.person-who { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.person-roles { flex: 0 0 auto; min-width: 240px; }
+.seg button:disabled { opacity: 0.55; cursor: default; }

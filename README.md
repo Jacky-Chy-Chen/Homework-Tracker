@@ -9,10 +9,29 @@ with automatic reminders for projects/tests due in the next 14 days.
 
 | Route | Who | What |
 |---|---|---|
-| `#/` | everyone | Everything about one day: homework posted that day, what is due that day, the month calendar, "coming up", and (for editors) the **Copy** group-chat message. `#/?d=2026-10-08` opens a particular date. |
+| `#/` | everyone | One day at a time: what is due (on today, the next school day's hand-ins), the month calendar, and (for editors) the **Copy** group-chat message. `#/?d=2026-10-08` opens a particular date. |
 | `#/schedule` | everyone | The weekly timetable with bell times. An editor can swap two classes — on the same day or across days — or cancel one, for a single date or for good. |
 | `#/materials` | everyone | Review sheets, notes and slides. Editors upload; everyone downloads. |
-| `#/post` | editors | Sign in, add / edit / delete items. |
+| `#/post` | everyone | Sign in or sign up. Editors get the form to add / edit / delete items. |
+| `#/people` | admins | Every account, and what each one may do. |
+
+## Accounts
+
+Anyone may sign up with an email address. A new account is a **reader**: it can read the site and
+nothing else. An **admin** raises the few people who post to **editor** on the `#/people` page;
+an **admin** can also hand out permissions. The rule is enforced in the database, not just in the
+browser, so a reader cannot write even by other means.
+
+Setting it up once, in Supabase:
+
+1. SQL Editor → run `supabase/schema.sql`, then `supabase/accounts.sql`.
+2. Authentication → Sign In / Providers → Email: turn **Allow new users to sign up** on and
+   **Confirm email** off (confirmation mail is unreliable in mainland China).
+3. Sign up on the site with your own address, then in SQL Editor:
+   `update public.profiles set role = 'admin' where email = 'you@example.com';`
+
+Accounts that existed before step 1 have no profile row yet; the bottom of `accounts.sql` has the
+statement that gives them one.
 
 ## Run locally
 
@@ -58,7 +77,8 @@ WeChat — pick a host classmates can actually open, then pin the link in the gr
 - `src/lib/dates.ts` — local `YYYY-MM-DD` date helpers
 - `src/lib/schedule.ts` — bell times, the printed timetable, and how changes are applied
 - `src/lib/holidays.ts` — the State Council's holiday and make-up days; update it each autumn
-- `src/pages/` — Today (includes the calendar), Schedule, Materials, Post (sign-in lives in Post)
+- `src/pages/` — Today (includes the calendar), Schedule, Materials, Post (sign-in and sign-up live in Post), People
+- `src/components/Tour.tsx` — the guided tour that dims the page and lights one part at a time
 - `src/components/` — shared UI (cards, timeline, month grid, icons)
 - `src/styles.css` — the theme; every colour is a CSS variable at the top, light and dark
 

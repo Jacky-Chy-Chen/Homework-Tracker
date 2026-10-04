@@ -32,14 +32,14 @@ export default function Materials({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar editor={!!data.user} />
+      <TopBar editor={data.editor} />
 
       <header className="page-head" data-tour="files">
         <div className="page-head-text">
           <div className="eyebrow">Review sheets, notes, slides</div>
           <h1>Files</h1>
         </div>
-        {data.user && (
+        {data.editor && (
           <div className="head-actions">
             <button className="btn-primary" onClick={() => setOpen(true)}>
               <Icon name="upload" size={16} stroke={2.2} />
@@ -51,7 +51,7 @@ export default function Materials({ data }: { data: AppData }) {
 
       {data.materials.length === 0 ? (
         <div className="empty" style={{ marginTop: 24 }}>
-          Nothing here yet.{data.user ? ' Upload a review sheet, notes or slides.' : ' Your teacher hasn’t added anything.'}
+          Nothing here yet.{data.editor ? ' Upload a review sheet, notes or slides.' : ' Your teacher hasn’t added anything.'}
         </div>
       ) : (
         <div className="materials-layout">
@@ -85,7 +85,7 @@ export default function Materials({ data }: { data: AppData }) {
                     >
                       <Icon name={opensInline(m) ? 'arrow' : 'download'} size={18} stroke={1.9} />
                     </a>
-                    {data.user && (
+                    {data.editor && (
                       <button className="icon-btn quiet danger" onClick={() => remove(m)} aria-label={`Delete ${m.title}`}>
                         <Icon name="trash" size={17} stroke={1.8} />
                       </button>

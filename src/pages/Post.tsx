@@ -4,7 +4,7 @@ import Icon from '../components/Icon'
 import { ItemRow, SectionHeading, ThemeToggle, TopBar, Wordmark } from '../components/ui'
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
 import { subjectBase, SUBJECT_SETS, subjectColor, TYPE_LABEL } from '../lib/homework'
-import { store, type Item, type ItemType, type NewItem } from '../lib/store'
+import { store, type Account, type Item, type ItemType, type NewItem } from '../lib/store'
 
 const TYPES: ItemType[] = ['daily', 'project', 'test', 'other']
 
@@ -14,28 +14,98 @@ const blank = (): NewItem => {
 }
 
 export default function Post({ data }: { data: AppData }) {
-  if (!data.user) return <SignIn onSignedIn={data.setUser} />
+  if (!data.editor) return <SignIn account={data.user} onSignedIn={data.setUser} onSignOut={data.signOut} />
   return <Editor data={data} />
 }
 
-function SignIn({ onSignedIn }: { onSignedIn: (u: string | null) => void }) {
+function SignIn({
+  account,
+  onSignedIn,
+  onSignOut,
+}: {
+  account: Account | null
+  onSignedIn: (u: Account | null) => void
+  onSignOut: () => Promise<void>
+}) {
+  const [mode, setMode] = useState<'in' | 'up'>('in')
   const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
+  const signingUp = mode === 'up'
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setErr(null)
     try {
-      await store.signIn(email.trim(), password)
+      if (signingUp) {
+        const { needsConfirmation } = await store.signUp(email.trim(), password, name.trim())
+        if (needsConfirmation) {
+          setSent(true)
+          return
+        }
+      } else {
+        await store.signIn(email.trim(), password)
+      }
       onSignedIn(await store.currentUser())
     } catch (e) {
       setErr((e as Error).message)
     } finally {
       setBusy(false)
     }
+  }
+
+  // Signed in, but not allowed to post yet.
+  if (account) {
+    return (
+      <div className="signin">
+        <div className="signin-top">
+          <a href="#/" className="icon-btn quiet" aria-label="Back to today's homework">
+            <Icon name="left" size={20} stroke={2} />
+          </a>
+          <ThemeToggle />
+        </div>
+        <div className="signin-body">
+          <div className="stack gap-lg">
+            <Wordmark big subtitle="" />
+            <div className="stack">
+              <h1>You are signed in</h1>
+              <p className="lead">
+                {account.name ? `${account.name} · ` : ''}{account.email}
+              </p>
+            </div>
+          </div>
+          <div className="signin-card stack">
+            <p className="lead">
+              Your account can read everything. Posting homework, changing the timetable and uploading files are for editors —
+              ask 谢倩 to make you one, then sign out and back in.
+            </p>
+            <button className="btn-secondary" onClick={onSignOut}>Sign out</button>
+          </div>
+        </div>
+        <p className="small faint center signin-foot">Everything on the site is readable without an account</p>
+      </div>
+    )
+  }
+
+  if (sent) {
+    return (
+      <div className="signin">
+        <div className="signin-body">
+          <div className="stack gap-lg">
+            <Wordmark big subtitle="" />
+            <div className="stack">
+              <h1>Check your email</h1>
+              <p className="lead">We sent a confirmation link to {email}. Open it, then come back and sign in.</p>
+            </div>
+          </div>
+          <a className="btn-primary" href="#/">Back to today</a>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -50,22 +120,49 @@ function SignIn({ onSignedIn }: { onSignedIn: (u: string | null) => void }) {
         <div className="stack gap-lg">
           <Wordmark big subtitle="" />
           <div className="stack">
-            <h1>Sign in to post</h1>
-            <p className="lead">Only the people who post homework need an account. Everyone else can just read.</p>
+            <h1>{signingUp ? 'Create an account' : 'Sign in'}</h1>
+            <p className="lead">
+              {signingUp
+                ? 'Sign up with your school email. New accounts can read the site; 谢倩 can then let you post.'
+                : 'Reading needs no account. Sign in to post homework, change the timetable or upload files.'}
+            </p>
           </div>
         </div>
         <form className="signin-card" onSubmit={submit}>
+          <div className="seg seg-2" role="radiogroup" aria-label="Sign in or sign up">
+            <button type="button" role="radio" aria-checked={!signingUp} className={!signingUp ? 'on' : ''} onClick={() => { setMode('in'); setErr(null) }}>
+              Sign in
+            </button>
+            <button type="button" role="radio" aria-checked={signingUp} className={signingUp ? 'on' : ''} onClick={() => { setMode('up'); setErr(null) }}>
+              Sign up
+            </button>
+          </div>
+          {signingUp && (
+            <label className="field">
+              <span className="field-label">Your name</span>
+              <input autoComplete="name" placeholder="How the class knows you" value={name} onChange={(e) => setName(e.target.value)} required />
+            </label>
+          )}
           <label className="field">
             <span className="field-label">Email</span>
             <input type="email" autoComplete="username" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </label>
           <label className="field">
             <span className="field-label">Password</span>
-            <input type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input
+              type="password"
+              autoComplete={signingUp ? 'new-password' : 'current-password'}
+              placeholder="••••••••"
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            {signingUp && <span className="small muted">At least six characters.</span>}
           </label>
           {err && <div className="alert error">{err}</div>}
           <button className="btn-primary" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? 'Just a moment…' : signingUp ? 'Create account' : 'Sign in'}
             {!busy && <Icon name="arrow" size={18} stroke={2.2} />}
           </button>
         </form>
@@ -364,7 +461,7 @@ function Editor({ data }: { data: AppData }) {
 
           {store.mode === 'supabase' && (
             <div className="signout-row mobile-only">
-              Signed in as {data.user}
+              Signed in as {data.user?.name || data.user?.email}
               <button className="link-btn" onClick={data.signOut}>Sign out</button>
             </div>
           )}

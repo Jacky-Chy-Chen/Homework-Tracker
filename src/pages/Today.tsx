@@ -75,7 +75,7 @@ export default function Today({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar editor={!!data.user} />
+      <TopBar editor={data.editor} />
 
       <header className="page-head" data-tour="day-head">
         <div className="page-head-text">
@@ -95,7 +95,7 @@ export default function Today({ data }: { data: AppData }) {
           <button className="icon-btn" onClick={() => selectDay(addDays(day, 1))} aria-label="Next day">
             <Icon name="right" />
           </button>
-          {data.user && (
+          {data.editor && (
             <a href="#/post" className="btn-primary desktop-only">
               <Icon name="plus" size={16} stroke={2.4} />
               Add homework
@@ -117,7 +117,7 @@ export default function Today({ data }: { data: AppData }) {
             )}
           </section>
 
-          {data.user && !data.loading && (
+          {data.editor && !data.loading && (
             <div className="order-5" data-tour="message">
               <MessageCard
                 text={buildMessage(data.items, day, swaps, fmtTag(nextDay))}

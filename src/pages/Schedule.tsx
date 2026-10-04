@@ -37,7 +37,7 @@ export default function Schedule({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar editor={!!data.user} />
+      <TopBar editor={data.editor} />
 
       <header className="page-head">
         <div className="page-head-text">
@@ -75,7 +75,7 @@ export default function Schedule({ data }: { data: AppData }) {
         </div>
       </div>
 
-      {data.user && (
+      {data.editor && (
         <p className="hint-line">
           <Icon name="edit" size={14} stroke={1.8} />
           Tap a class to swap it with another, or cancel it.
@@ -85,7 +85,7 @@ export default function Schedule({ data }: { data: AppData }) {
       {view === 'day' ? (
         <DayList date={selected} data={data} onEdit={(period) => setEditing({ date: selected, period })} />
       ) : (
-        <WeekGrid days={days} today={today} slotsFor={slotsFor} canEdit={!!data.user} onEdit={(date, period) => setEditing({ date, period })} />
+        <WeekGrid days={days} today={today} slotsFor={slotsFor} canEdit={data.editor} onEdit={(date, period) => setEditing({ date, period })} />
       )}
 
       {weekChanges.length > 0 && (
@@ -158,7 +158,7 @@ function DayList({ date, data, onEdit }: { date: string; data: AppData; onEdit: 
           </>
         )
         const cls = `slot ${s.change ? 'changed' : ''} ${s.subject === null ? 'cancelled' : ''}`
-        return data.user ? (
+        return data.editor ? (
           <button key={s.period.n} className={cls} onClick={() => onEdit(s.period.n)}>{body}</button>
         ) : (
           <div key={s.period.n} className={cls}>{body}</div>

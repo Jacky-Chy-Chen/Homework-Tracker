@@ -28,6 +28,8 @@ interface Step {
   body: string
   /** Skipped for a reader who is not signed in as an editor. */
   editorOnly?: boolean
+  /** Only the person who hands out permissions sees this one. */
+  adminOnly?: boolean
 }
 
 const STEPS: Step[] = [
@@ -87,6 +89,13 @@ const STEPS: Step[] = [
     editorOnly: true,
   },
   {
+    route: '#/people',
+    target: '[data-tour="people"]',
+    title: 'Who may post',
+    body: 'Everyone signs up with their own email, and a new account can only read. Make someone an editor here and they can post homework, change the timetable and upload files.',
+    adminOnly: true,
+  },
+  {
     target: '[data-tour="help"]',
     title: 'That is everything',
     body: 'Open this guide again from here whenever you need it.',
@@ -99,8 +108,8 @@ const findTarget = (sel: string) =>
 
 interface Rect { top: number; left: number; width: number; height: number }
 
-export default function Tour({ editor, onClose }: { editor: boolean; onClose: () => void }) {
-  const steps = STEPS.filter((s) => !s.editorOnly || editor)
+export default function Tour({ editor, admin, onClose }: { editor: boolean; admin: boolean; onClose: () => void }) {
+  const steps = STEPS.filter((s) => (!s.editorOnly || editor) && (!s.adminOnly || admin))
     // The timetable has an editor version and a reader version; keep one.
     .filter((s, i, all) => !(s.title === 'The timetable' && all.some((o, j) => j < i && o.title === 'The timetable')))
   const [n, setN] = useState(0)

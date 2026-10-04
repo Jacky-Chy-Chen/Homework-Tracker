@@ -35,6 +35,19 @@ export type NewMaterial = Omit<Material, 'id' | 'created_at' | 'file_path' | 'fi
 
 export type Timetable = (string | null)[][]
 
+/** reader: can read. editor: can post. admin: can also hand out those permissions. */
+export type Role = 'reader' | 'editor' | 'admin'
+
+export interface Account {
+  id: string
+  email: string
+  name: string | null
+  role: Role
+}
+
+export const canEdit = (a: Account | null) => a?.role === 'editor' || a?.role === 'admin'
+export const isAdmin = (a: Account | null) => a?.role === 'admin'
+
 export interface Store {
   mode: 'supabase' | 'demo'
   list(): Promise<Item[]>
@@ -53,10 +66,15 @@ export interface Store {
   removeMaterial(m: Material): Promise<void>
   /** A URL the browser can open for this material. */
   fileUrl(m: Material): string
-  /** Signed-in email, or null. Demo mode is always "signed in". */
-  currentUser(): Promise<string | null>
+  /** The signed-in account, or null. Demo mode is always "signed in". */
+  currentUser(): Promise<Account | null>
   signIn(email: string, password: string): Promise<void>
+  /** Creates a reader account. An admin can raise it to editor afterwards. */
+  signUp(email: string, password: string, name: string): Promise<{ needsConfirmation: boolean }>
   signOut(): Promise<void>
+  /** Everyone with an account, for the admin's People page. */
+  people(): Promise<Account[]>
+  setRole(id: string, role: Role): Promise<void>
 }
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
@@ -129,13 +147,37 @@ function supabaseStore(sb: SupabaseClient): Store {
     },
     async currentUser() {
       const { data } = await sb.auth.getSession()
-      return data.session?.user.email ?? null
+      const user = data.session?.user
+      if (!user) return null
+      // The profile row carries the role; a brand-new account may beat its trigger.
+      const { data: row, error } = await sb.from('profiles').select('id, email, name, role').eq('id', user.id).maybeSingle()
+      // Before accounts.sql has been run there is no profiles table at all. Back
+      // then every signed-in account could write, so keep that until it exists.
+      const noTable = !!error && /profiles/i.test(error.message)
+      return {
+        id: user.id,
+        email: user.email ?? '',
+        name: (row?.name as string | null) ?? null,
+        role: (row?.role as Role | undefined) ?? (noTable ? 'editor' : 'reader'),
+      }
     },
     async signIn(email, password) {
       check(await sb.auth.signInWithPassword({ email, password }))
     },
+    async signUp(email, password, name) {
+      const res = check(await sb.auth.signUp({ email, password, options: { data: { name } } }))
+      // With "Confirm email" off, Supabase signs the person in straight away.
+      return { needsConfirmation: !res.data.session }
+    },
     async signOut() {
       await sb.auth.signOut()
+    },
+    async people() {
+      const { data } = check(await sb.from('profiles').select('id, email, name, role').order('email'))
+      return (data ?? []) as Account[]
+    },
+    async setRole(id, role) {
+      check(await sb.from('profiles').update({ role }).eq('id', id))
     },
   }
 }
@@ -249,10 +291,20 @@ function demoStore(): Store {
       return m.file_path
     },
     async currentUser() {
-      return 'demo'
+      return { id: 'demo', email: 'demo@classboard', name: 'Demo', role: 'admin' as Role }
     },
     async signIn() {},
+    async signUp() {
+      return { needsConfirmation: false }
+    },
     async signOut() {},
+    async people() {
+      return [
+        { id: 'demo', email: 'demo@classboard', name: 'Demo', role: 'admin' as Role },
+        { id: 'demo-2', email: 'student@classboard', name: 'A student', role: 'reader' as Role },
+      ]
+    },
+    async setRole() {},
   }
 }
 

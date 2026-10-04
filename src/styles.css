@@ -544,6 +544,10 @@ button.slot:hover { background: var(--surface-2); }
 button.week-cell:hover { background: var(--surface-2); }
 .week-cell.empty-cell { background: transparent; border-style: dashed; }
 .week-cell.changed { border-color: var(--accent); background: var(--accent-soft); }
+/* A holiday column: the same sand as the calendar, named once at the top. */
+.week-cell.off-cell { background: var(--cal-off); border-color: transparent; }
+.week-cell.off-cell .week-cell-name { color: var(--cal-off-ink); }
+.week-cell.off-cell.empty-cell { background: var(--cal-off); border-style: solid; }
 .week-cell-name { font-size: 13px; font-weight: 600; line-height: 1.25; }
 .week-cell-note { font-size: 10.5px; color: var(--muted); }
 

@@ -190,6 +190,10 @@ function WeekGrid({
   canEdit: boolean
   onEdit: (date: string, period: number) => void
 }) {
+  // The 9th period only exists on Wednesday, so a row nobody uses is left out —
+  // unless the whole week is a holiday, when the grid would otherwise be empty.
+  const used = PERIODS.filter((p) => days.some((d) => slotsFor(d).some((s) => s.period.n === p.n)))
+  const rows = used.length > 0 ? used : PERIODS.filter((p) => !p.wedOnly)
   return (
     <div className="week-scroll">
       <div className="week">
@@ -197,16 +201,12 @@ function WeekGrid({
         {days.map((d) => (
           <div key={d} className={`week-head ${d === today ? 'is-today' : ''}`}>
             <span>{DAY_NAMES[weekdayIndex(d)!].slice(0, 3)}</span>
-            <span className="faint">
-              {holidayOn(d) ? 'No school' : `${parseISO(d).getDate()} ${MONTHS_SHORT[parseISO(d).getMonth()]}`}
-            </span>
+            <span className="faint">{parseISO(d).getDate()} {MONTHS_SHORT[parseISO(d).getMonth()]}</span>
           </div>
         ))}
 
-        {PERIODS.map((p) => {
+        {rows.map((p, rowIndex) => {
           const cells = days.map((d) => slotsFor(d).find((s) => s.period.n === p.n))
-          // The 9th period only exists on Wednesday; hide the row when nothing uses it.
-          if (cells.every((c) => !c)) return null
           return (
             <div key={p.n} style={{ display: 'contents' }}>
               <div className="week-period">
@@ -215,6 +215,16 @@ function WeekGrid({
               </div>
               {days.map((d, i) => {
                 const slot = cells[i]
+                const holiday = holidayOn(d)
+                // A day off says so once, where its first lesson would have been.
+                if (holiday) {
+                  return (
+                    <div key={d} className={`week-cell off-cell ${rowIndex === 0 ? '' : 'empty-cell'}`}>
+                      {rowIndex === 0 && <span className="week-cell-name">No school</span>}
+                      {rowIndex === 0 && <span className="week-cell-note">{holiday.name}</span>}
+                    </div>
+                  )
+                }
                 if (!slot) return <div key={d} className="week-cell empty-cell" />
                 const cls = `week-cell ${slot.change ? 'changed' : ''}`
                 const body = (

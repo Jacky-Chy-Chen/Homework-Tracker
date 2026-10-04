@@ -81,7 +81,7 @@ function SignIn({
           <div className="signin-card stack">
             <p className="lead">
               Your account can read everything. Posting homework, changing the timetable and uploading files are for editors —
-              ask 谢倩 to make you one, then sign out and back in.
+              ask the class rep or your homeroom teacher to make you one, then reload the site.
             </p>
             <button className="btn-secondary" onClick={onSignOut}>Sign out</button>
           </div>
@@ -123,7 +123,7 @@ function SignIn({
             <h1>{signingUp ? 'Create an account' : 'Sign in'}</h1>
             <p className="lead">
               {signingUp
-                ? 'Sign up with your school email. New accounts can read the site; 谢倩 can then let you post.'
+                ? 'Sign up with your school email. A new account can read the site; the class rep can then let you post.'
                 : 'Reading needs no account. Sign in to post homework, change the timetable or upload files.'}
             </p>
           </div>

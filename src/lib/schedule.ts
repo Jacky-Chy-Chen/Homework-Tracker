@@ -1,3 +1,4 @@
+import { holidayOn } from './holidays'
 // The class timetable: a fixed weekly grid, plus one-off changes attached to single dates.
 // Subjects come from the codes on the printed timetable (BIO → Biology, E/ENG → English, …).
 
@@ -43,6 +44,12 @@ export const DEFAULT_TIMETABLE: (string | null)[][] = [
 export const CLASS_INFO = { grade: 'G8 (5)', room: '307', teacher: '谢倩', term: '2026 · Term 1' }
 
 /** A change to one period on one date. `subject: null` means the class is cancelled. */
+/** A swap across days keeps the partner's date in `note`: the table has no column for it. */
+export const swapPartner = (c: SlotChange | undefined) =>
+  c?.note?.startsWith('with:') ? c.note.slice(5) : null
+
+export const swapNote = (partnerDate: string | null) => (partnerDate ? `with:${partnerDate}` : null)
+
 export interface SlotChange {
   id: string
   date: string
@@ -71,7 +78,8 @@ export interface Slot {
 /** The periods actually taught on a date, with any changes applied. */
 export function daySlots(iso: string, timetable: (string | null)[][], changes: SlotChange[]): Slot[] {
   const wd = weekdayIndex(iso)
-  if (wd === null) return []
+  // No lessons at the weekend, and none on a public holiday.
+  if (wd === null || holidayOn(iso)) return []
   const row = timetable[wd] ?? []
   const onDate = changes.filter((c) => c.date === iso)
   return PERIODS.filter((p) => !p.wedOnly || wd === 2)

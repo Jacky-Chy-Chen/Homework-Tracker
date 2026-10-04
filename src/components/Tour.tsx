@@ -64,7 +64,7 @@ const STEPS: Step[] = [
     route: '#/schedule',
     target: '[data-tour="slots"]',
     title: 'The timetable',
-    body: 'Pick a day here and its lessons appear below with their bell times. Tap a lesson to swap it, replace it or cancel it — either just for that day, or every week from now on.',
+    body: 'Pick a day here and its lessons appear below with their bell times. Tap a lesson to swap it with another one — the same day or a different day — or to cancel it, either just for that day or every week from now on.',
     editorOnly: true,
   },
   {

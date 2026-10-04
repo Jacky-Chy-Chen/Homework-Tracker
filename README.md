@@ -10,7 +10,7 @@ with automatic reminders for projects/tests due in the next 14 days.
 | Route | Who | What |
 |---|---|---|
 | `#/` | everyone | Everything about one day: homework posted that day, what is due that day, the month calendar, "coming up", and (for editors) the **Copy** group-chat message. `#/?d=2026-10-08` opens a particular date. |
-| `#/schedule` | everyone | The weekly timetable with bell times. An editor can swap, replace or cancel a class for one date, or change the timetable for good. |
+| `#/schedule` | everyone | The weekly timetable with bell times. An editor can swap two classes — on the same day or across days — or cancel one, for a single date or for good. |
 | `#/materials` | everyone | Review sheets, notes and slides. Editors upload; everyone downloads. |
 | `#/post` | editors | Sign in, add / edit / delete items. |
 

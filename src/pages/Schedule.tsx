@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AppData } from '../App'
+import type { SlotChange } from '../lib/schedule'
 import Icon from '../components/Icon'
 import { SectionHeading, TopBar } from '../components/ui'
 import { addDays, fmtLong, fmtTag, parseISO, todayISO } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
 import { holidayOn, makeupOn } from '../lib/holidays'
-import { CLASS_INFO, DAY_NAMES, daySlots, PERIODS, weekdayIndex } from '../lib/schedule'
+import { CLASS_INFO, DAY_NAMES, daySlots, PERIODS, swapNote, swapPartner, weekdayIndex } from '../lib/schedule'
 import { store, type Timetable } from '../lib/store'
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -77,7 +78,7 @@ export default function Schedule({ data }: { data: AppData }) {
       {data.user && (
         <p className="hint-line">
           <Icon name="edit" size={14} stroke={1.8} />
-          Tap a class to swap, replace or cancel it.
+          Tap a class to swap it with another, or cancel it.
         </p>
       )}
 
@@ -99,7 +100,7 @@ export default function Schedule({ data }: { data: AppData }) {
                     <span className="faint">Period {s.period.n}</span>
                     <span>
                       {s.original ?? 'free'} → <strong>{s.subject ?? 'cancelled'}</strong>
-                      {s.change?.swapped_with ? ` (swapped with period ${s.change.swapped_with})` : ''}
+                      {s.change?.swapped_with ? ` (swapped with ${swapWords(s.change)})` : ''}
                     </span>
                   </div>
                 ))}
@@ -149,7 +150,7 @@ function DayList({ date, data, onEdit }: { date: string; data: AppData; onEdit: 
               {s.change && (
                 <span className="slot-badge">
                   <Icon name="swap" size={12} stroke={2} />
-                  {s.change.swapped_with ? `Swapped with period ${s.change.swapped_with}` : `Was ${s.original ?? 'free'}`}
+                  {s.change.swapped_with ? `Swapped with ${swapWords(s.change)}` : `Was ${s.original ?? 'free'}`}
                 </span>
               )}
             </span>
@@ -165,6 +166,19 @@ function DayList({ date, data, onEdit }: { date: string; data: AppData; onEdit: 
       })}
     </div>
   )
+}
+
+/** 'period 3' inside the day, 'period 3 on Thursday' when it crossed days. */
+function swapWords(c: SlotChange) {
+  const partner = swapPartner(c)
+  return `period ${c.swapped_with}${partner ? ` on ${DAY_NAMES[weekdayIndex(partner)!]}` : ''}`
+}
+
+/** 'P3' for a swap inside the day, 'Thu P3' when it crossed days. */
+function swapLabel(c: SlotChange) {
+  const partner = swapPartner(c)
+  const where = partner ? `${DAY_NAMES[weekdayIndex(partner)!].slice(0, 3)} ` : ''
+  return `${where}P${c.swapped_with}`
 }
 
 function WeekGrid({
@@ -183,7 +197,9 @@ function WeekGrid({
         {days.map((d) => (
           <div key={d} className={`week-head ${d === today ? 'is-today' : ''}`}>
             <span>{DAY_NAMES[weekdayIndex(d)!].slice(0, 3)}</span>
-            <span className="faint">{parseISO(d).getDate()} {MONTHS_SHORT[parseISO(d).getMonth()]}</span>
+            <span className="faint">
+              {holidayOn(d) ? 'No school' : `${parseISO(d).getDate()} ${MONTHS_SHORT[parseISO(d).getMonth()]}`}
+            </span>
           </div>
         ))}
 
@@ -208,7 +224,9 @@ function WeekGrid({
                     </span>
                     {slot.change && (
                       <span className="week-cell-note">
-                        {slot.change.swapped_with ? `Swap · P${slot.change.swapped_with}` : `Was ${slot.original ?? 'free'}`}
+                        {slot.change.swapped_with
+                          ? `Swap · ${swapLabel(slot.change)}`
+                          : `Was ${slot.original ?? 'free'}`}
                       </span>
                     )}
                   </>
@@ -227,12 +245,12 @@ function WeekGrid({
   )
 }
 
-type Mode = 'swap' | 'replace' | 'cancel'
+type Mode = 'swap' | 'cancel'
 
 function SlotEditor({ date, period, data, onClose }: { date: string; period: number; data: AppData; onClose: () => void }) {
   const [mode, setMode] = useState<Mode>('swap')
+  const [withDate, setWithDate] = useState(date)
   const [withPeriod, setWithPeriod] = useState<number | null>(null)
-  const [subject, setSubject] = useState('')
   const [forever, setForever] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -240,8 +258,14 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
   const wd = weekdayIndex(date)!
   const slots = daySlots(date, data.timetable, data.changes)
   const slot = slots.find((s) => s.period.n === period)
-  const known = useMemo(() => [...new Set(data.timetable.flat().filter(Boolean) as string[])].sort(), [data.timetable])
-  const others = slots.filter((s) => s.period.n !== period)
+  // A swap can reach any lesson of the same week, on this day or another.
+  const week = useMemo(() => {
+    const monday = addDays(date, -((parseISO(date).getDay() + 6) % 7))
+    return [0, 1, 2, 3, 4].map((i) => addDays(monday, i)).filter((d) => daySlots(d, data.timetable, data.changes).length > 0)
+  }, [date, data.timetable, data.changes])
+  const withSlots = daySlots(withDate, data.timetable, data.changes)
+  const others = withSlots.filter((s) => !(withDate === date && s.period.n === period))
+  const sameDay = withDate === date
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -255,27 +279,27 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
     try {
       const grid: Timetable = data.timetable.map((r) => [...r])
       if (mode === 'swap') {
-        if (!withPeriod) throw new Error('Pick the period to swap with.')
-        const other = slots.find((s) => s.period.n === withPeriod)!
+        if (!withPeriod) throw new Error('Pick the class to swap with.')
+        const other = withSlots.find((s) => s.period.n === withPeriod)!
+        const otherWd = weekdayIndex(withDate)!
         if (forever) {
           grid[wd][period - 1] = other.subject
-          grid[wd][withPeriod - 1] = slot?.subject ?? null
+          grid[otherWd][withPeriod - 1] = slot?.subject ?? null
           await store.saveTimetable(grid)
-        } else {
+        } else if (sameDay) {
           await store.clearChanges(date, [period, withPeriod])
           await store.addChanges([
             { date, period, subject: other.subject, swapped_with: withPeriod, note: null },
             { date, period: withPeriod, subject: slot?.subject ?? null, swapped_with: period, note: null },
           ])
-        }
-      } else if (mode === 'replace') {
-        if (!subject.trim()) throw new Error('Choose or type the new subject.')
-        if (forever) {
-          grid[wd][period - 1] = subject.trim()
-          await store.saveTimetable(grid)
         } else {
+          // Two days, one swap: each row points at the other day's period.
           await store.clearChanges(date, [period])
-          await store.addChanges([{ date, period, subject: subject.trim(), swapped_with: null, note: null }])
+          await store.clearChanges(withDate, [withPeriod])
+          await store.addChanges([
+            { date, period, subject: other.subject, swapped_with: withPeriod, note: swapNote(withDate) },
+            { date: withDate, period: withPeriod, subject: slot?.subject ?? null, swapped_with: period, note: swapNote(date) },
+          ])
         }
       } else {
         if (forever) {
@@ -299,7 +323,13 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
     setBusy(true)
     try {
       const pair = slot?.change?.swapped_with
-      await store.clearChanges(date, pair ? [period, pair] : [period])
+      const partnerDate = swapPartner(slot?.change)
+      if (pair && partnerDate) {
+        await store.clearChanges(date, [period])
+        await store.clearChanges(partnerDate, [pair])
+      } else {
+        await store.clearChanges(date, pair ? [period, pair] : [period])
+      }
       await data.reloadSchedule()
       onClose()
     } catch (e) {
@@ -320,44 +350,51 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
           <button className="icon-btn quiet" onClick={onClose} aria-label="Close"><Icon name="close" size={20} stroke={2} /></button>
         </div>
 
-        <div className="seg seg-3" role="radiogroup" aria-label="What to do">
-          {(['swap', 'replace', 'cancel'] as Mode[]).map((m) => (
+        <div className="seg seg-2" role="radiogroup" aria-label="What to do">
+          {(['swap', 'cancel'] as Mode[]).map((m) => (
             <button key={m} role="radio" aria-checked={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>
-              {m === 'swap' ? 'Swap' : m === 'replace' ? 'Replace' : 'Cancel'}
+              {m === 'swap' ? 'Swap' : 'Cancel'}
             </button>
           ))}
         </div>
 
         {mode === 'swap' && (
-          <div className="field">
-            <span className="field-label">Swap with</span>
-            <div className="chips">
-              {others.map((s) => (
-                <button
-                  key={s.period.n}
-                  className={`chip ${withPeriod === s.period.n ? 'on' : ''}`}
-                  aria-pressed={withPeriod === s.period.n}
-                  onClick={() => setWithPeriod(s.period.n)}
-                >
-                  Period {s.period.n} · {s.subject ?? 'free'}
-                </button>
-              ))}
+          <>
+            <div className="field">
+              <span className="field-label">Day to swap with</span>
+              <div className="chips">
+                {week.map((d) => (
+                  <button
+                    key={d}
+                    className={`chip ${withDate === d ? 'on' : ''}`}
+                    aria-pressed={withDate === d}
+                    onClick={() => {
+                      setWithDate(d)
+                      setWithPeriod(null)
+                    }}
+                  >
+                    {DAY_NAMES[weekdayIndex(d)!].slice(0, 3)} {parseISO(d).getDate()}
+                    {d === date ? ' · this day' : ''}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-
-        {mode === 'replace' && (
-          <div className="field">
-            <span className="field-label">New subject</span>
-            <div className="chips">
-              {known.map((s) => (
-                <button key={s} className={`chip ${subject === s ? 'on' : ''}`} aria-pressed={subject === s} onClick={() => setSubject(s)}>
-                  <span className="swatch" style={{ background: subjectColor(s) }} />{s}
-                </button>
-              ))}
+            <div className="field">
+              <span className="field-label">Class to swap with</span>
+              <div className="chips">
+                {others.map((s) => (
+                  <button
+                    key={s.period.n}
+                    className={`chip ${withPeriod === s.period.n ? 'on' : ''}`}
+                    aria-pressed={withPeriod === s.period.n}
+                    onClick={() => setWithPeriod(s.period.n)}
+                  >
+                    Period {s.period.n} · {s.subject ?? 'free'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Or type something else" />
-          </div>
+          </>
         )}
 
         {mode === 'cancel' && <p className="lead">No class this period — the students get a free period.</p>}
@@ -369,7 +406,11 @@ function SlotEditor({ date, period, data, onClose }: { date: string; period: num
             <button className={forever ? 'on' : ''} onClick={() => setForever(true)}>Every week</button>
           </div>
           <span className="small muted">
-            {forever ? 'Changes the normal timetable from now on.' : `Only ${fmtTag(date)}. Next week stays normal.`}
+            {forever
+              ? 'Changes the normal timetable from now on.'
+              : mode === 'swap' && !sameDay
+                ? `Only ${fmtTag(date)} and ${fmtTag(withDate)}. Next week stays normal.`
+                : `Only ${fmtTag(date)}. Next week stays normal.`}
           </span>
         </div>
 

@@ -27,9 +27,12 @@ export const daysBetween = (a: string, b: string) =>
 /** The next day the class is at school, stepping over weekends and holidays. */
 export const nextSchoolDay = (iso: string) => {
   let d = addDays(iso, 1)
-  // A long holiday plus its weekends is nine days at most; stop either way.
-  for (let i = 0; i < 20 && !isSchoolDay(d); i++) d = addDays(d, 1)
-  return d
+  // Include long school breaks; never return a holiday just because a cap was reached.
+  for (let i = 0; i < 366; i++) {
+    if (isSchoolDay(d)) return d
+    d = addDays(d, 1)
+  }
+  throw new Error('No school day found within the next year')
 }
 
 export const weekday = (iso: string) => WEEKDAYS[parseISO(iso).getDay()]

@@ -32,7 +32,12 @@ export const MAKEUP_DAYS: { date: string; name: string }[] = [
   { date: '2026-10-10', name: 'National Day' },
 ]
 
-export const holidayOn = (iso: string) => HOLIDAYS.find((h) => iso >= h.from && iso <= h.to) ?? null
+/** School-specific breaks approved separately from the public-holiday timetable. */
+export const SCHOOL_BREAKS: Holiday[] = [
+  { name: 'Student winter holiday', from: '2027-01-23', to: '2027-02-21' },
+]
+
+export const holidayOn = (iso: string) => [...HOLIDAYS, ...SCHOOL_BREAKS].find((h) => iso >= h.from && iso <= h.to) ?? null
 
 export const makeupOn = (iso: string) => MAKEUP_DAYS.find((m) => m.date === iso) ?? null
 
@@ -46,6 +51,12 @@ const isWeekend = (iso: string) => {
 export const isSchoolDay = (iso: string) => (makeupOn(iso) ? true : !isWeekend(iso) && !holidayOn(iso))
 
 /** The day the break starts on, for 'National Day · 1–7 Oct'. */
-export const holidayRange = (h: Holiday) => `${h.from.slice(8)}–${h.to.slice(8)} ${MONTHS[Number(h.to.slice(5, 7)) - 1]}`
+export const holidayRange = (h: Holiday) => {
+  const startMonth = MONTHS[Number(h.from.slice(5, 7)) - 1]
+  const endMonth = MONTHS[Number(h.to.slice(5, 7)) - 1]
+  return h.from.slice(0, 7) === h.to.slice(0, 7)
+    ? `${h.from.slice(8)}–${h.to.slice(8)} ${endMonth}`
+    : `${h.from.slice(8)} ${startMonth}–${h.to.slice(8)} ${endMonth}`
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']

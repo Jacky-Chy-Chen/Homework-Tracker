@@ -22,6 +22,24 @@ const TYPE_EMOJI: Record<ItemType, string> = {
 export const assignedOn = (items: Item[], day: string) =>
   items.filter((i) => i.assigned_date === day)
 
+/** Today looks ahead to the next school day; other dates show their own hand-ins. */
+export function homeworkForDay(items: Item[], selected: string, today: string) {
+  const dueDate = selected === today ? nextSchoolDay(today) : selected
+  return { dueDate, items: items.filter((i) => i.due_date === dueDate) }
+}
+
+/** All later deadlines, grouped by date. Independent of the chat's reminder window. */
+export function deadlinesAfter(items: Item[], cutoff: string): [string, Item[]][] {
+  const groups = new Map<string, Item[]>()
+  for (const item of items) {
+    if (item.due_date <= cutoff) continue
+    const group = groups.get(item.due_date) ?? []
+    group.push(item)
+    groups.set(item.due_date, group)
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
+}
+
 /** Long-term things (not daily homework) due after this day, within the reminder window. */
 export const upcomingFrom = (items: Item[], day: string) => {
   const limit = addDays(day, REMINDER_DAYS)

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import MonthGrid, { Legend } from '../components/MonthGrid'
+import ClassNews from '../components/ClassNews'
 import { ItemCard, MessageCard, SectionHeading, TopBar } from '../components/ui'
 import { addDays, fmtDue, fmtEyebrow, fmtHead, fmtTag, nextSchoolDay, parseISO, relative, todayISO } from '../lib/dates'
-import { buildMessage, buildWeekMessage, groupBySubject, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
+import { buildMessage, buildWeekMessage, deadlinesAfter, groupBySubject, homeworkForDay, onCalendar, REMINDER_DAYS, upcomingFrom } from '../lib/homework'
 import { holidayOn, makeupOn } from '../lib/holidays'
 import { changeLines, daySlots } from '../lib/schedule'
 
@@ -54,8 +55,11 @@ export default function Today({ data }: { data: AppData }) {
   // order the chat message uses.
   const dayHoliday = holidayOn(day)
   const dayMakeup = makeupOn(day)
-  const listDay = isToday ? nextSchoolDay(today) : day
-  const dueList = groupBySubject(data.items.filter((i) => i.due_date === listDay)).flatMap(([, list]) => list)
+  const handIns = homeworkForDay(data.items, day, today)
+  const listDay = handIns.dueDate
+  const dueList = groupBySubject(handIns.items).flatMap(([, list]) => list)
+  const futureGroups = isToday ? deadlinesAfter(data.items, listDay) : []
+  const futureCount = futureGroups.reduce((count, [, items]) => count + items.length, 0)
   const listTitle = isToday
     ? `Due next school day (${fmtTag(listDay)})`
     : day < today
@@ -117,6 +121,34 @@ export default function Today({ data }: { data: AppData }) {
             )}
           </section>
 
+          {isToday && (
+            <details className="coming-up order-2" open>
+              <summary className="coming-up-toggle">
+                <span className="coming-up-heading">Coming Up</span>
+                {!data.loading && <span className="count">{futureCount}</span>}
+                <Icon name="down" size={18} />
+              </summary>
+              <div className="coming-up-body">
+                {data.loading ? (
+                  <div className="empty">Loading upcoming assignments…</div>
+                ) : futureGroups.length === 0 ? (
+                  <div className="empty">No assignments due after the next school day.</div>
+                ) : (
+                  futureGroups.map(([date, items]) => (
+                    <section key={date} className="deadline-group" aria-labelledby={`deadline-${date}`}>
+                      <h3 id={`deadline-${date}`} className="deadline-date">
+                        <time dateTime={date}>{parseISO(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time>
+                      </h3>
+                      {groupBySubject(items).flatMap(([, list]) => list).map((i) => (
+                        <ItemCard key={i.id} item={i} files={filesFor(i.id)} tick />
+                      ))}
+                    </section>
+                  ))
+                )}
+              </div>
+            </details>
+          )}
+
           {data.editor && !data.loading && (
             <div className="order-5" data-tour="message">
               <MessageCard
@@ -146,6 +178,7 @@ export default function Today({ data }: { data: AppData }) {
               <Legend />
             </div>
           </section>
+          <ClassNews data={data} />
         </div>
       </div>
     </>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { canEdit, isAdmin, store, type Account, type Item, type Material, type Timetable } from './lib/store'
 import { DEFAULT_TIMETABLE, type SlotChange } from './lib/schedule'
 import { addDays, todayISO } from './lib/dates'
@@ -9,11 +9,15 @@ import Schedule from './pages/Schedule'
 import Materials from './pages/Materials'
 import Post from './pages/Post'
 import People from './pages/People'
+import SchoolCalendar from './pages/SchoolCalendar'
+import News from './pages/News'
+import { schoolToday, type BirthdayGreeting, type NewsItem } from './lib/news'
+import { NewsSetupError } from './lib/news-store'
 import Tour, { tourSeen } from './components/Tour'
 
 // Hash routing: works on any static host and inside WeChat's browser.
-type Route = 'today' | 'schedule' | 'materials' | 'post' | 'people'
-const ROUTES: Route[] = ['today', 'schedule', 'materials', 'post', 'people']
+type Route = 'today' | 'schedule' | 'materials' | 'post' | 'people' | 'school-calendar' | 'news'
+const ROUTES: Route[] = ['today', 'schedule', 'materials', 'post', 'people', 'school-calendar', 'news']
 const readRoute = (): Route => {
   const r = location.hash.replace(/^#\/?/, '').split('?')[0] as Route
   return ROUTES.includes(r) ? r : 'today'
@@ -35,12 +39,20 @@ export interface AppData {
   reloadMaterials: () => Promise<void>
   setUser: (u: Account | null) => void
   signOut: () => Promise<void>
+  news: NewsItem[]
+  greetings: BirthdayGreeting[]
+  newsDay: string
+  newsStatus: 'loading' | 'ready' | 'setup' | 'error'
+  newsError: string | null
+  reloadNews: () => Promise<void>
 }
 
 const NAV: { route: Route; href: string; label: string; icon: IconName; editorOnly?: boolean; adminOnly?: boolean }[] = [
   { route: 'today', href: '#/', label: 'Today', icon: 'today' },
   { route: 'schedule', href: '#/schedule', label: 'Classes', icon: 'grid' },
+  { route: 'school-calendar', href: '#/school-calendar', label: 'School', icon: 'calendar' },
   { route: 'materials', href: '#/materials', label: 'Files', icon: 'folder' },
+  { route: 'news', href: '#/news', label: 'News', icon: 'chat' },
   { route: 'post', href: '#/post', label: 'Add', icon: 'plus', editorOnly: true },
   { route: 'people', href: '#/people', label: 'People', icon: 'user', adminOnly: true },
 ]
@@ -51,6 +63,8 @@ const TITLES: Record<Route, string> = {
   materials: 'Files · Classboard',
   post: 'Add homework · Classboard',
   people: 'People · Classboard',
+  'school-calendar': 'School Calendar · Classboard',
+  news: 'Class News · Classboard',
 }
 
 export default function App() {
@@ -62,6 +76,12 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [user, setUser] = useState<Account | null>(null)
+  const [news, setNews] = useState<NewsItem[]>([])
+  const [greetings, setGreetings] = useState<BirthdayGreeting[]>([])
+  const [newsDay, setNewsDay] = useState(schoolToday)
+  const [newsStatus, setNewsStatus] = useState<AppData['newsStatus']>('loading')
+  const [newsError, setNewsError] = useState<string | null>(null)
+  const newsRequest = useRef(0)
   // The guide opens itself the first time someone lands here, and lives behind
   // the Guide button after that.
   const [tour, setTour] = useState(() => !tourSeen())
@@ -97,6 +117,47 @@ export default function App() {
       fail(e)
     }
   }, [])
+
+  const reloadNews = useCallback(async () => {
+    const request = ++newsRequest.current
+    try {
+      const [posts, birthdayGreetings] = await Promise.all([store.news.list(), store.news.greetings()])
+      if (request !== newsRequest.current) return
+      setNews(posts)
+      setGreetings(birthdayGreetings)
+      setNewsStatus('ready')
+      setNewsError(null)
+    } catch (e) {
+      if (request !== newsRequest.current) return
+      setNews([])
+      setGreetings([])
+      setNewsStatus(e instanceof NewsSetupError ? 'setup' : 'error')
+      setNewsError((e as Error).message)
+    }
+  }, [])
+
+  useEffect(() => {
+    // No roster is loaded here. Refresh after sign-in, permission changes or school midnight.
+    setNews([])
+    setGreetings([])
+    setNewsStatus('loading')
+    reloadNews()
+    return () => { newsRequest.current++ }
+  }, [reloadNews, user?.id, user?.role, user?.news_manager, newsDay])
+
+  useEffect(() => {
+    const clock = () => setNewsDay(schoolToday())
+    const refresh = () => { clock(); reloadNews() }
+    const visible = () => { if (document.visibilityState === 'visible') refresh() }
+    const interval = window.setInterval(clock, 30000)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', visible)
+    }
+  }, [reloadNews])
 
   useEffect(() => {
     // The calendar used to be its own page; old links keep working.
@@ -137,6 +198,7 @@ export default function App() {
     items, materials, timetable, changes, loading, error, user,
     editor: canEdit(user), admin: isAdmin(user),
     reload, reloadSchedule, reloadMaterials, setUser, signOut,
+    news, greetings, newsDay, newsStatus, newsError, reloadNews,
   }
   const editor = canEdit(user)
   const nav = NAV.filter((n) => (!n.editorOnly || editor) && (!n.adminOnly || isAdmin(user)))
@@ -189,6 +251,8 @@ export default function App() {
         {route === 'materials' && <Materials data={data} />}
         {route === 'post' && <Post data={data} />}
         {route === 'people' && <People data={data} />}
+        {route === 'school-calendar' && <SchoolCalendar data={data} />}
+        {route === 'news' && <News data={data} />}
         {!editor && route !== 'post' && (
           <footer className="footer">
             <a href="#/post">
@@ -202,7 +266,7 @@ export default function App() {
 
       {!signingIn && (
         <nav className="tabs">
-          {nav.map((n) => (
+          {nav.filter(n => n.route !== 'news').map((n) => (
             <a key={n.route} href={n.href} className={route === n.route ? 'active' : ''}>
               <Icon name={n.icon} size={22} stroke={1.8} />
               {n.label}

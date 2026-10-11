@@ -1,6 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { addDays, nextSchoolDay, todayISO } from './dates'
 import { DEFAULT_TIMETABLE, type SlotChange } from './schedule'
+import { fetchAllPages } from './pagination'
+import { demoNewsStore, supabaseNewsStore } from './news-store'
+import { demoStudentNotesStore, supabaseStudentNotesStore } from './student-notes-store'
 
 export type ItemType = 'daily' | 'project' | 'test' | 'other'
 
@@ -43,6 +46,7 @@ export interface Account {
   email: string
   name: string | null
   role: Role
+  news_manager?: boolean
 }
 
 export const canEdit = (a: Account | null) => a?.role === 'editor' || a?.role === 'admin'
@@ -50,6 +54,8 @@ export const isAdmin = (a: Account | null) => a?.role === 'admin'
 
 export interface Store {
   mode: 'supabase' | 'demo'
+  news: import('./news-store').NewsStore
+  studentNotes: import('./student-notes-store').StudentNotesStore
   list(): Promise<Item[]>
   add(item: NewItem): Promise<void>
   update(id: string, item: NewItem): Promise<void>
@@ -75,6 +81,7 @@ export interface Store {
   /** Everyone with an account, for the admin's People page. */
   people(): Promise<Account[]>
   setRole(id: string, role: Role): Promise<void>
+  setNewsManager(id: string, allowed: boolean): Promise<void>
 }
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
@@ -90,9 +97,13 @@ function supabaseStore(sb: SupabaseClient): Store {
   }
   return {
     mode: 'supabase',
+    news: supabaseNewsStore(sb),
+    studentNotes: supabaseStudentNotesStore(sb),
     async list() {
-      const { data } = check(await sb.from('items').select('*').order('due_date'))
-      return (data ?? []) as Item[]
+      return fetchAllPages<Item>(async (from, to) => {
+        const { data } = check(await sb.from('items').select('*').order('due_date').order('id').range(from, to))
+        return (data ?? []) as Item[]
+      })
     },
     async add(item) {
       check(await sb.from('items').insert(item))
@@ -150,7 +161,7 @@ function supabaseStore(sb: SupabaseClient): Store {
       const user = data.session?.user
       if (!user) return null
       // The profile row carries the role; a brand-new account may beat its trigger.
-      const { data: row, error } = await sb.from('profiles').select('id, email, name, role').eq('id', user.id).maybeSingle()
+      const { data: row, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle()
       // Before accounts.sql has been run there is no profiles table at all. Back
       // then every signed-in account could write, so keep that until it exists.
       const noTable = !!error && /profiles/i.test(error.message)
@@ -159,6 +170,7 @@ function supabaseStore(sb: SupabaseClient): Store {
         email: user.email ?? '',
         name: (row?.name as string | null) ?? null,
         role: (row?.role as Role | undefined) ?? (noTable ? 'editor' : 'reader'),
+        news_manager: row?.news_manager === true,
       }
     },
     async signIn(email, password) {
@@ -173,11 +185,14 @@ function supabaseStore(sb: SupabaseClient): Store {
       await sb.auth.signOut()
     },
     async people() {
-      const { data } = check(await sb.from('profiles').select('id, email, name, role').order('email'))
+      const { data } = check(await sb.from('profiles').select('*').order('email'))
       return (data ?? []) as Account[]
     },
     async setRole(id, role) {
       check(await sb.from('profiles').update({ role }).eq('id', id))
+    },
+    async setNewsManager(id, allowed) {
+      check(await sb.from('profiles').update({ news_manager: allowed }).eq('id', id).select('id').single())
     },
   }
 }
@@ -233,6 +248,8 @@ function demoStore(): Store {
 
   return {
     mode: 'demo',
+    news: demoNewsStore(async () => ({ role: 'admin' })),
+    studentNotes: demoStudentNotesStore(async () => ({ id: 'demo', name: 'Demo', role: 'admin' })),
     async list() {
       return loadItems().sort((a, b) => a.due_date.localeCompare(b.due_date))
     },
@@ -301,10 +318,13 @@ function demoStore(): Store {
     async people() {
       return [
         { id: 'demo', email: 'demo@classboard', name: 'Demo', role: 'admin' as Role },
-        { id: 'demo-2', email: 'student@classboard', name: 'A student', role: 'reader' as Role },
+        { id: 'demo-2', email: 'student@classboard', name: 'A student', role: 'reader' as Role, news_manager: read<Record<string, boolean>>('hw-demo-news-permissions', {})['demo-2'] ?? false },
       ]
     },
     async setRole() {},
+    async setNewsManager(personId, allowed) {
+      write('hw-demo-news-permissions', { ...read<Record<string, boolean>>('hw-demo-news-permissions', {}), [personId]: allowed })
+    },
   }
 }
 

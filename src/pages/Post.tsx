@@ -5,6 +5,7 @@ import { ItemRow, SectionHeading, ThemeToggle, TopBar, Wordmark } from '../compo
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
 import { subjectBase, SUBJECT_SETS, subjectColor, TYPE_LABEL } from '../lib/homework'
 import { store, type Account, type Item, type ItemType, type NewItem } from '../lib/store'
+import { canManageNews } from '../lib/news'
 
 const TYPES: ItemType[] = ['daily', 'project', 'test', 'other']
 
@@ -84,6 +85,7 @@ function SignIn({
               ask the class rep or your homeroom teacher to make you one, then reload the site.
             </p>
             <button className="btn-secondary" onClick={onSignOut}>Sign out</button>
+            {canManageNews(account) && <a className="btn-primary" href="#/news?view=manage">Manage Class News</a>}
           </div>
         </div>
         <p className="small faint center signin-foot">Everything on the site is readable without an account</p>

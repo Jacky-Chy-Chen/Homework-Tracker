@@ -5,7 +5,7 @@ import { SectionHeading, TopBar } from '../components/ui'
 import { store, type Account, type Role } from '../lib/store'
 
 const ROLES: { value: Role; label: string; what: string }[] = [
-  { value: 'reader', label: 'Reader', what: 'Can read the site. Cannot change anything.' },
+  { value: 'reader', label: 'Reader', what: 'Can read the site. Cannot change homework, the timetable or materials.' },
   { value: 'editor', label: 'Editor', what: 'Can post homework, change the timetable and upload files.' },
   { value: 'admin', label: 'Admin', what: 'Everything an editor can do, and can set these permissions.' },
 ]
@@ -44,6 +44,15 @@ export default function People({ data }: { data: AppData }) {
     } finally {
       setBusy(null)
     }
+  }
+
+  const changeNewsPermission = async (person: Account, allowed: boolean) => {
+    setBusy(person.id); setErr(null)
+    try {
+      await store.setNewsManager(person.id, allowed)
+      setPeople(list => list.map(p => p.id === person.id ? { ...p, news_manager: allowed } : p))
+    } catch (e) { setErr((e as Error).message) }
+    finally { setBusy(null) }
   }
 
   const editors = people.filter((p) => p.role !== 'reader')
@@ -95,6 +104,12 @@ export default function People({ data }: { data: AppData }) {
                   </button>
                 ))}
               </div>
+              <label className="news-check person-news-permission">
+                <input type="checkbox" checked={p.role === 'admin' || p.news_manager === true}
+                  disabled={busy !== null || p.role === 'admin' || data.newsStatus !== 'ready'}
+                  onChange={e => changeNewsPermission(p, e.target.checked)} />
+                <span>News manager<span className="small muted">{p.role === 'admin' ? 'Included for admins' : 'Class News and private birthday settings only; does not grant homework editing'}</span></span>
+              </label>
             </div>
           ))
         )}
@@ -108,6 +123,10 @@ export default function People({ data }: { data: AppData }) {
               <strong>{r.label}</strong> — {r.what}
             </p>
           ))}
+          <p className="small muted">
+            News management is separate from homework editing. Assign it only to an identified, authorized account. No teacher account has been created or selected.
+          </p>
+          {data.newsStatus === 'setup' && <p className="small muted">News permissions can be assigned after the Phase 4 migration has been reviewed and applied.</p>}
           <p className="small muted">
             <Icon name="user" size={13} stroke={1.8} /> You cannot change your own permissions, so an admin can never lock
             themselves out.

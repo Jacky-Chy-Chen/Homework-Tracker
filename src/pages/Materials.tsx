@@ -5,6 +5,7 @@ import { SectionHeading, TopBar } from '../components/ui'
 import { fmtTag } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
 import { store, type Material } from '../lib/store'
+import StudentNotes from '../components/StudentNotes'
 
 const fmtSize = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${Math.round(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`)
 
@@ -17,6 +18,7 @@ const opensInline = (m: Material) => /pdf|image\//.test(m.file_type) || /\.(pdf|
 
 export default function Materials({ data }: { data: AppData }) {
   const [open, setOpen] = useState(false)
+  const [view, setView] = useState<'teacher' | 'student'>('teacher')
   // Subject filter chips sit above the list.
   const bySubject = useMemo(() => {
     const groups = new Map<string, Material[]>()
@@ -39,15 +41,22 @@ export default function Materials({ data }: { data: AppData }) {
           <div className="eyebrow">Review sheets, notes, slides</div>
           <h1>Files</h1>
         </div>
-        {data.editor && (
+        {data.editor && view === 'teacher' && (
           <div className="head-actions">
             <button className="btn-primary" onClick={() => setOpen(true)}>
               <Icon name="upload" size={16} stroke={2.2} />
-              Upload
+              Upload teacher material
             </button>
           </div>
         )}
       </header>
+
+      <div className="chips notes-tabs" aria-label="Materials sections">
+        <button className={`chip ${view === 'teacher' ? 'on' : ''}`} aria-pressed={view === 'teacher'} onClick={() => { setView('teacher'); setOpen(false) }}>Teacher Materials</button>
+        <button className={`chip ${view === 'student' ? 'on' : ''}`} aria-pressed={view === 'student'} onClick={() => { setView('student'); setOpen(false) }}>Student Notes</button>
+      </div>
+
+      {view === 'student' ? <StudentNotes key={`${data.user?.id ?? 'visitor'}-${data.user?.role ?? 'visitor'}`} data={data} /> : <>
 
       {data.materials.length === 0 ? (
         <div className="empty" style={{ marginTop: 24 }}>
@@ -103,6 +112,7 @@ export default function Materials({ data }: { data: AppData }) {
       </p>
 
       {open && <UploadSheet data={data} onClose={() => setOpen(false)} />}
+      </>}
     </>
   )
 }

@@ -11,6 +11,8 @@ with automatic reminders for projects/tests due in the next 14 days.
 |---|---|---|
 | `#/` | everyone | One day at a time: what is due (on today, the next school day's hand-ins), the month calendar, and (for editors) the **Copy** group-chat message. `#/?d=2026-10-08` opens a particular date. |
 | `#/schedule` | everyone | The weekly timetable with bell times. An editor can swap two classes — on the same day or across days — or cancel one, for a single date or for good. |
+| `#/school-calendar` | everyone | Approved school dates, selectable month grid, category filters, event details and monthly agenda. Separate from the homework calendar. |
+| `#/news` | everyone | Class News archive and category filters. Admins/authorized news managers also manage posts and private birthday settings. |
 | `#/materials` | everyone | Review sheets, notes and slides. Editors upload; everyone downloads. |
 | `#/post` | everyone | Sign in or sign up. Editors get the form to add / edit / delete items. |
 | `#/people` | admins | Every account, and what each one may do. |
@@ -45,13 +47,17 @@ Uploaded files are kept as data URLs there, so demo mode caps them at 1 MB.
 
 ## How the rules work
 
-- **The calendar** only shows projects, tests and homework due later than the next school day.
+- **Coming Up on Today** shows every assignment due after the next school day, grouped by date with no time limit. It is expanded by default and can be collapsed. Other selected dates still show only that date's assignments.
+- **Group-chat reminders** retain their separate 14-day window. The longer Coming Up list does not make the chat message longer.
+- **The homework calendar** only shows projects, tests and homework due later than the next school day.
   Everyday homework stays on the Today page and in the chat message.
 - **A star** marks any day with a test; a lime dot marks projects.
 - **The timetable** is a weekly grid (`src/lib/schedule.ts` holds the printed one) plus
   per-date changes, so a one-off swap never affects the following week. Changes for the next
   school day are added to the group message automatically.
 - **Ticked-off homework** is saved per student, in their own browser only.
+- **School Calendar** is a separate page under School, with month navigation, selectable dates, category filters and an event agenda. Only reviewed, explicitly approved academic events are included; the original PDF is never served. Dates may change, and unannounced dates are not guessed.
+- **School breaks** are maintained separately from national holidays. The approved winter break is skipped by next-school-day calculations; existing make-up days remain unchanged. A computed school day after a break is not an announcement of the next term's start.
 
 ## Connect Supabase (shared data)
 
@@ -74,12 +80,40 @@ WeChat — pick a host classmates can actually open, then pin the link in the gr
 
 - `src/lib/store.ts` — data layer: Supabase, or localStorage in demo mode
 - `src/lib/homework.ts` — "coming up" rules and the group-chat message text
+- `src/lib/pagination.ts` — fetches all homework pages so older records do not hide future deadlines
 - `src/lib/dates.ts` — local `YYYY-MM-DD` date helpers
 - `src/lib/schedule.ts` — bell times, the printed timetable, and how changes are applied
-- `src/lib/holidays.ts` — the State Council's holiday and make-up days; update it each autumn
+- `src/lib/holidays.ts` — public holidays, make-up days, and separately approved school breaks
+- `src/lib/academic-calendar.ts` — school calendar grids, inclusive event ranges and month navigation
+- `src/lib/academic-events.ts` — approved school events only; never imports private reference files
+- `src/pages/SchoolCalendar.tsx` — separate school calendar, details and month agenda
 - `src/pages/` — Today (includes the calendar), Schedule, Materials, Post (sign-in and sign-up live in Post), People
 - `src/components/Tour.tsx` — the guided tour that dims the page and lights one part at a time
 - `src/components/` — shared UI (cards, timeline, month grid, icons)
 - `src/styles.css` — the theme; every colour is a CSS variable at the top, light and dark
 
 The font (Plus Jakarta Sans) is bundled via `@fontsource` rather than Google Fonts, which is blocked in mainland China.
+
+## Checks and private references
+
+Run `npm test` with Node.js 24 or newer for date-selection, deadline-grouping, message-regression and pagination tests. These use Node's built-in TypeScript support (which may print an experimental warning). Run `npm run build` for TypeScript and the production build; the existing Node.js 20 deployment build remains supported.
+
+`reference/` is ignored by Git. Keep the private academic calendar there for local reference only; do not place it in public assets or upload it as a material.
+
+## Class News setup (Phase 4)
+
+Review [the Phase 4 implementation and setup notes](docs/PHASE_4_CLASS_NEWS.md) and [the migration SQL](supabase/migrations/20261011_class_news.sql) before applying anything. The migration is prepared but **not applied**. News management is a separate `news_manager` permission, assigned by an admin on People; homework editors do not automatically receive it. No teacher account has been selected.
+
+Birthday records have no birth year and remain manager-only. A date-restricted function exposes only today's consented display-name greetings. Greetings disappear after school midnight (UTC+8) and do not enter the archive. The app never fetches the full roster for ordinary visitors.
+
+`npm test` now includes in-memory PostgreSQL tests of the actual news/birthday/Storage RLS rules. Hosted Storage behavior still needs staging verification after setup approval. No live migration or data changes are made by the tests.
+
+## Student Notes setup (Phase 5)
+
+Files now separates Teacher Materials from Student Notes. Signed-in students publish immediately, edit only their own notes and report errors privately. Admins can dismiss reports or remove notes. Teacher upload permissions are unchanged.
+
+Review [Phase 5 setup and security notes](docs/PHASE_5_STUDENT_NOTES.md) and [the migration SQL](supabase/migrations/20261011_student_notes.sql). Neither the migration nor the secure `upload-student-note` function has been applied/deployed. Both are required for shared uploads. Files support PDF/images/Word/PowerPoint up to 20 MiB each (demo: under 1 MB); total capacity depends on the project's storage allowance.
+
+The notes bucket is private, with short-lived downloads. Notes and contributor display names are visible to anyone with the site link; moderation reports remain admin-only. Upload format checks are not antivirus. Keep all service-role secrets server-side.
+
+`npm test` also covers notes validation, ownership, reports, real local PostgreSQL RLS, restrictive storage guards, and the upload handler with mocked services. Hosted integration requires separately approved staging setup.

@@ -1,4 +1,7 @@
--- Run once in Supabase → SQL Editor.
+-- Legacy base schema: NOT sufficient for current production authorization.
+-- Follow docs/AUTHENTICATION_DEPLOYMENT.md; accounts.sql and all migrations,
+-- ending with 20261015_authenticated_class_access.sql, are required.
+-- Do not run automatically. Historical policies below are superseded there.
 
 create table if not exists public.items (
   id            uuid primary key default gen_random_uuid(),
@@ -22,9 +25,8 @@ drop policy if exists "public read" on public.items;
 create policy "public read" on public.items
   for select using (true);
 
--- Only signed-in users can write. Turn OFF sign-ups (Authentication → Sign In / Providers
--- → "Allow new users to sign up") and create your own account under Authentication → Users,
--- so you are the only signed-in user.
+-- Historical poster policy; accounts.sql replaces it with editor/admin checks.
+-- Keep open signup ON; new accounts must remain readers. See deployment guide.
 drop policy if exists "poster write" on public.items;
 create policy "poster write" on public.items
   for all to authenticated using (true) with check (true);
@@ -85,8 +87,9 @@ begin
   end loop;
 end $$;
 
--- Storage: create a PUBLIC bucket named "materials" (Storage → New bucket),
--- then run these so only signed-in posters can upload or delete.
+-- Storage: create a PRIVATE bucket named "materials" (Storage → New bucket).
+-- These historical upload/delete rules are tightened by accounts.sql and the
+-- latest authentication migration. Do not stop installation at this file.
 drop policy if exists "materials upload" on storage.objects;
 create policy "materials upload" on storage.objects
   for insert to authenticated with check (bucket_id = 'materials');

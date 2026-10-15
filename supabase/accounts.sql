@@ -95,6 +95,6 @@ create policy "materials delete" on storage.objects
 -- so give them one as well:
 --
 --   insert into public.profiles (id, email, role)
---   select id, email, 'admin' from auth.users
+--   select id, email, 'reader' from auth.users
 --   on conflict (id) do nothing;
 -- ---------------------------------------------------------------------------

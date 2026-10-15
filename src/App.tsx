@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { canEdit, isAdmin, store, type Account, type Item, type Material, type Timetable } from './lib/store'
 import { DEFAULT_TIMETABLE, type SlotChange } from './lib/schedule'
 import { addDays, todayISO } from './lib/dates'
@@ -14,6 +14,9 @@ import News from './pages/News'
 import { schoolToday, type BirthdayGreeting, type NewsItem } from './lib/news'
 import { NewsSetupError } from './lib/news-store'
 import Tour, { tourSeen } from './components/Tour'
+import Auth from './pages/Auth'
+import { createAuthSession } from './lib/auth-session'
+import { canAccessRoute } from './lib/access'
 
 // Hash routing: works on any static host and inside WeChat's browser.
 type Route = 'today' | 'schedule' | 'materials' | 'post' | 'people' | 'school-calendar' | 'news'
@@ -37,7 +40,6 @@ export interface AppData {
   reload: () => Promise<void>
   reloadSchedule: () => Promise<void>
   reloadMaterials: () => Promise<void>
-  setUser: (u: Account | null) => void
   signOut: () => Promise<void>
   news: NewsItem[]
   greetings: BirthdayGreeting[]
@@ -68,14 +70,31 @@ const TITLES: Record<Route, string> = {
 }
 
 export default function App() {
-  const [route, setRoute] = useState<Route>(readRoute)
+  const session = useMemo(() => createAuthSession(store, () => { location.hash = '#/' }), [])
+  const auth = useSyncExternalStore(session.subscribe, session.getSnapshot)
+  useEffect(() => session.start(), [session])
+  useEffect(() => {
+    if (auth.status !== 'signed-in') document.title = 'Sign in · Classboard'
+  }, [auth.status])
+  if (auth.status === 'checking') return (
+    <main className="auth-page" aria-busy="true">
+      <div className="signin"><div className="signin-body"><p role="status" aria-live="polite">Checking your session…</p></div></div>
+    </main>
+  )
+  if (!auth.user) return <Auth error={auth.error} onAuthenticated={session.refresh} onSignOut={session.signOut} />
+  return <Classroom key={`${auth.user.id}-${auth.user.role}-${!!auth.user.news_manager}`} user={auth.user} signOut={session.signOut} />
+}
+
+/** Mounted only after authentication; unmounting clears all fetched class data. */
+function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<void> }) {
+  const [requestedRoute, setRoute] = useState<Route>(readRoute)
+  const route = canAccessRoute(user, requestedRoute) ? requestedRoute : 'today'
   const [items, setItems] = useState<Item[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
   const [timetable, setTimetable] = useState<Timetable>(DEFAULT_TIMETABLE)
   const [changes, setChanges] = useState<SlotChange[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [user, setUser] = useState<Account | null>(null)
   const [news, setNews] = useState<NewsItem[]>([])
   const [greetings, setGreetings] = useState<BirthdayGreeting[]>([])
   const [newsDay, setNewsDay] = useState(schoolToday)
@@ -176,7 +195,6 @@ export default function App() {
     reload()
     reloadSchedule()
     reloadMaterials()
-    store.currentUser().then(setUser)
     return () => {
       window.removeEventListener('hashchange', onHash)
       window.removeEventListener('classboard:guide', openGuide)
@@ -184,34 +202,26 @@ export default function App() {
   }, [reload, reloadSchedule, reloadMaterials])
 
   useEffect(() => {
+    if (requestedRoute !== route) location.replace('#/')
     document.title = TITLES[route]
     window.scrollTo(0, 0)
-  }, [route])
-
-  const signOut = async () => {
-    await store.signOut()
-    setUser(null)
-    location.hash = '#/'
-  }
+  }, [route, requestedRoute])
 
   const data: AppData = {
     items, materials, timetable, changes, loading, error, user,
     editor: canEdit(user), admin: isAdmin(user),
-    reload, reloadSchedule, reloadMaterials, setUser, signOut,
+    reload, reloadSchedule, reloadMaterials, signOut,
     news, greetings, newsDay, newsStatus, newsError, reloadNews,
   }
   const editor = canEdit(user)
   const nav = NAV.filter((n) => (!n.editorOnly || editor) && (!n.adminOnly || isAdmin(user)))
-  // The sign-in screen is full-bleed with no navigation.
-  const signingIn = route === 'post' && !editor
 
   return (
-    <div className={`app ${signingIn ? 'no-nav' : ''}`}>
+    <div className="app">
       {store.mode === 'demo' && (
         <div className="demo-banner">Demo mode · saved only in this browser</div>
       )}
 
-      {!signingIn && (
         <aside className="sidebar">
           <a href="#/" className="sidebar-brand"><Wordmark /></a>
           <nav className="sidebar-nav">
@@ -228,23 +238,21 @@ export default function App() {
               Guide
             </button>
             <ThemeToggle row />
-            {user ? (
               <div className="sidebar-user">
                 <span className="pill-editor">
                   <span className="dot" />
                   {user.role === 'admin' ? 'Admin' : user.role === 'editor' ? 'Editor' : 'Reader'}
                 </span>
                 <span className="small faint">{user.name || user.email}</span>
-                <button className="link-btn" onClick={signOut}>Sign out</button>
               </div>
-            ) : (
-              <a className="sidebar-user" href="#/post">Sign in</a>
-            )}
           </div>
         </aside>
-      )}
 
       <main className={`page page-${route}`}>
+        <div className="session-actions">
+          <span className="small muted">{user.name || user.email} · {user.role === 'admin' ? 'Admin' : user.role === 'editor' ? 'Editor' : 'Reader'}</span>
+          <button className="btn-secondary" onClick={() => { void signOut() }}>Sign out</button>
+        </div>
         {error && <div className="alert error">Something went wrong: {error}</div>}
         {route === 'today' && <Today data={data} />}
         {route === 'schedule' && <Schedule data={data} />}
@@ -253,18 +261,10 @@ export default function App() {
         {route === 'people' && <People data={data} />}
         {route === 'school-calendar' && <SchoolCalendar data={data} />}
         {route === 'news' && <News data={data} />}
-        {!editor && route !== 'post' && (
-          <footer className="footer">
-            <a href="#/post">
-              {user ? 'Your account' : 'Sign in or sign up'} <Icon name="arrow" size={14} stroke={2} />
-            </a>
-          </footer>
-        )}
       </main>
 
-      {tour && !signingIn && <Tour editor={editor} admin={isAdmin(user)} onClose={() => setTour(false)} />}
+      {tour && <Tour editor={editor} admin={isAdmin(user)} onClose={() => setTour(false)} />}
 
-      {!signingIn && (
         <nav className="tabs">
           {nav.filter(n => n.route !== 'news').map((n) => (
             <a key={n.route} href={n.href} className={route === n.route ? 'active' : ''}>
@@ -273,7 +273,6 @@ export default function App() {
             </a>
           ))}
         </nav>
-      )}
     </div>
   )
 }

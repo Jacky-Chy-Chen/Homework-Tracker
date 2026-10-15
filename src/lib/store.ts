@@ -71,9 +71,11 @@ export interface Store {
   addMaterial(meta: NewMaterial, file: File): Promise<void>
   removeMaterial(m: Material): Promise<void>
   /** A URL the browser can open for this material. */
-  fileUrl(m: Material): string
-  /** The signed-in account, or null. Demo mode is always "signed in". */
+  fileUrl(m: Material): Promise<string>
+  /** The signed-in account, or null. Unconfigured demo mode never authenticates. */
   currentUser(): Promise<Account | null>
+  /** Session events, including other tabs and token refresh. Do not query inside the listener. */
+  subscribeAuth(listener: (signedIn: boolean) => void): () => void
   signIn(email: string, password: string): Promise<void>
   /** Creates a reader account. An admin can raise it to editor afterwards. */
   signUp(email: string, password: string, name: string): Promise<{ needsConfirmation: boolean }>
@@ -153,24 +155,33 @@ function supabaseStore(sb: SupabaseClient): Store {
       check(await sb.from('materials').delete().eq('id', m.id))
       await sb.storage.from(BUCKET).remove([m.file_path])
     },
-    fileUrl(m) {
-      return sb.storage.from(BUCKET).getPublicUrl(m.file_path).data.publicUrl
+    async fileUrl(m) {
+      return check(await sb.storage.from(BUCKET).createSignedUrl(m.file_path, 60)).data!.signedUrl
     },
     async currentUser() {
-      const { data } = await sb.auth.getSession()
+      const { data, error: sessionError } = await sb.auth.getSession()
       const user = data.session?.user
-      if (!user) return null
-      // The profile row carries the role; a brand-new account may beat its trigger.
-      const { data: row, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle()
-      // Before accounts.sql has been run there is no profiles table at all. Back
-      // then every signed-in account could write, so keep that until it exists.
-      const noTable = !!error && /profiles/i.test(error.message)
-      return {
+      if (sessionError || !user) return null
+      const reader: Account = {
         id: user.id,
         email: user.email ?? '',
-        name: (row?.name as string | null) ?? null,
-        role: (row?.role as Role | undefined) ?? (noTable ? 'editor' : 'reader'),
-        news_manager: row?.news_manager === true,
+        name: null,
+        role: 'reader',
+        news_manager: false,
+      }
+      // Editing requires a successful profile lookup, never a legacy/error fallback.
+      try {
+        const { data: row, error } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle()
+        if (error || !row) return reader
+        return {
+          ...reader,
+          name: (row.name as string | null) ?? null,
+          role: row.role === 'editor' || row.role === 'admin' ? row.role : 'reader',
+          news_manager: row.news_manager === true,
+        }
+      } catch {
+        // Rejected/network requests must fail closed too.
+        return reader
       }
     },
     async signIn(email, password) {
@@ -181,8 +192,12 @@ function supabaseStore(sb: SupabaseClient): Store {
       // With "Confirm email" off, Supabase signs the person in straight away.
       return { needsConfirmation: !res.data.session }
     },
+    subscribeAuth(listener) {
+      const { data } = sb.auth.onAuthStateChange((_event, session) => listener(!!session))
+      return () => data.subscription.unsubscribe()
+    },
     async signOut() {
-      await sb.auth.signOut()
+      check(await sb.auth.signOut({ scope: 'local' }))
     },
     async people() {
       const { data } = check(await sb.from('profiles').select('*').order('email'))
@@ -304,15 +319,16 @@ function demoStore(): Store {
     async removeMaterial(m) {
       write(DEMO_MATERIALS, read<Material[]>(DEMO_MATERIALS, []).filter((x) => x.id !== m.id))
     },
-    fileUrl(m) {
+    async fileUrl(m) {
       return m.file_path
     },
     async currentUser() {
-      return { id: 'demo', email: 'demo@classboard', name: 'Demo', role: 'admin' as Role }
+      return null
     },
-    async signIn() {},
+    subscribeAuth() { return () => {} },
+    async signIn() { throw new Error('Connect Supabase to enable sign in. Local demo mode does not authenticate users.') },
     async signUp() {
-      return { needsConfirmation: false }
+      throw new Error('Connect Supabase to enable registration.')
     },
     async signOut() {},
     async people() {
@@ -328,4 +344,6 @@ function demoStore(): Store {
   }
 }
 
-export const store: Store = url && key ? supabaseStore(createClient(url, key)) : demoStore()
+export const store: Store = url && key ? supabaseStore(createClient(url, key, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+})) : demoStore()

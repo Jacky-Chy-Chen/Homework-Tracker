@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { dateTile, daysBetween, fmtDue, fmtTag, relative, todayISO } from '../lib/dates'
 import { subjectColor, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type Material } from '../lib/store'
@@ -41,7 +41,7 @@ export function ThemeToggle({ row }: { row?: boolean }) {
   )
 }
 
-/** Wordmark on the left; the editor badge or a sign-in button on the right. */
+/** Authentication is handled before any class page is mounted. */
 export function TopBar({ editor }: { editor?: boolean }) {
   return (
     <div className="topbar">
@@ -61,9 +61,7 @@ export function TopBar({ editor }: { editor?: boolean }) {
             Editor
           </span>
         ) : (
-          <a className="icon-btn" href="#/post" aria-label="Sign in to post">
-            <Icon name="user" size={19} stroke={1.8} />
-          </a>
+          <span className="small muted">Reader</span>
         )}
         <ThemeToggle />
       </div>
@@ -98,14 +96,38 @@ export function TypeTag({ type }: { type: Item['type'] }) {
   return <span className={`tag tag-${type}`}>{TYPE_LABEL[type]}</span>
 }
 
+/** Two explicit steps avoid popup blockers in mobile/WeChat browsers. */
+export function MaterialLink({ file, className, children }: { file: Material; className?: string; children: React.ReactNode }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    if (!url) return
+    const timer = setTimeout(() => setUrl(null), 55000)
+    return () => clearTimeout(timer)
+  }, [url])
+  const prepare = async () => {
+    if (busy) return
+    setBusy(true); setError(null)
+    try { setUrl(await store.fileUrl(file)) }
+    catch { setError('Could not prepare this file. Please try again.') }
+    finally { setBusy(false) }
+  }
+  return <span className="material-download">
+    {url ? <a className={className} href={url} target="_blank" rel="noreferrer" aria-label={`Open ${file.title}`}>{children}<span className="small">Open</span></a>
+      : <button type="button" className={className} disabled={busy} aria-label={`Prepare ${file.title} for download`} onClick={() => { void prepare() }}>{children}<span className="small">{busy ? 'Preparing…' : 'Get file'}</span></button>}
+    {error && <span className="small danger" role="alert">{error}</span>}
+  </span>
+}
+
 function Attachments({ files }: { files: Material[] }) {
   return (
     <>
       {files.map((f) => (
-        <a key={f.id} className="attachment" href={store.fileUrl(f)} target="_blank" rel="noreferrer">
+        <MaterialLink key={f.id} file={f} className="attachment">
           <Icon name="folder" size={14} />
           {f.title}
-        </a>
+        </MaterialLink>
       ))}
     </>
   )

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
-import { SectionHeading, TopBar } from '../components/ui'
+import { MaterialLink, SectionHeading, TopBar } from '../components/ui'
 import { fmtTag } from '../lib/dates'
 import { subjectColor } from '../lib/homework'
 import { store, type Material } from '../lib/store'
@@ -84,16 +84,9 @@ export default function Materials({ data }: { data: AppData }) {
                       </span>
                       {m.notes && <span className="card-notes">{m.notes}</span>}
                     </div>
-                    <a
-                      className="icon-btn quiet"
-                      href={store.fileUrl(m)}
-                      target="_blank"
-                      rel="noreferrer"
-                      download={opensInline(m) ? undefined : m.file_name}
-                      aria-label={`Open ${m.title}`}
-                    >
+                    <MaterialLink file={m} className="btn-secondary">
                       <Icon name={opensInline(m) ? 'arrow' : 'download'} size={18} stroke={1.9} />
-                    </a>
+                    </MaterialLink>
                     {data.editor && (
                       <button className="icon-btn quiet danger" onClick={() => remove(m)} aria-label={`Delete ${m.title}`}>
                         <Icon name="trash" size={17} stroke={1.8} />
@@ -108,7 +101,7 @@ export default function Materials({ data }: { data: AppData }) {
       )}
 
       <p className="empty" style={{ marginTop: 26, textAlign: 'left' }}>
-        In WeChat, PDFs and photos open straight away. Word and Excel files may ask you to open them in a browser.
+        Choose Get file, then Open. Links expire after one minute. In WeChat, some file types may need an external browser.
       </p>
 
       {open && <UploadSheet data={data} onClose={() => setOpen(false)} />}

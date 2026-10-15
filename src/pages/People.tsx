@@ -12,6 +12,11 @@ const ROLES: { value: Role; label: string; what: string }[] = [
 
 /** The admin's page: who has an account, and what each of them may do. */
 export default function People({ data }: { data: AppData }) {
+  if (!data.admin || !data.user) return null
+  return <PeopleManager data={data} />
+}
+
+function PeopleManager({ data }: { data: AppData }) {
   const [people, setPeople] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)

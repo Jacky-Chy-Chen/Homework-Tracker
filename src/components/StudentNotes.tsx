@@ -45,7 +45,7 @@ export default function StudentNotes({ data }: { data: AppData }) {
         {data.user && <button className="btn-primary" disabled={status !== 'ready'} onClick={() => { setForm('new'); setFlash(null) }}><Icon name="upload" size={16} />Upload notes</button>}
       </div>
     </div>
-    <p className="small muted">Notes publish immediately for anyone with the Classboard link. Share only work you have permission to share; your display name will appear as contributor. Reports go privately to administrators.</p>
+    <p className="small muted">Notes publish immediately for signed-in Classboard users. Share only work you have permission to share; your display name will appear as contributor. Reports go privately to administrators.</p>
     {!data.user && <p className="small"><a href="#/post">Sign in</a> to upload notes or report an error.</p>}
     {flash && <p className="alert" role="status">{flash}</p>}
     {status === 'loading' && <p className="empty" role="status">Loading student notes…</p>}

@@ -1,7 +1,7 @@
 # Classboard
 
 A homeroom homework board for G8 (5). One editor (the class rep or the teacher) adds each day's homework plus long-term projects
-and tests; everyone else opens the link from the WeChat group to see today's homework and a
+and tests; classmates sign in from the WeChat group link to see today's homework and a
 calendar of what's coming up. The Today page also writes the daily group-chat message,
 with automatic reminders for projects/tests due in the next 14 days.
 
@@ -9,31 +9,24 @@ with automatic reminders for projects/tests due in the next 14 days.
 
 | Route | Who | What |
 |---|---|---|
-| `#/` | everyone | One day at a time: what is due (on today, the next school day's hand-ins), the month calendar, and (for editors) the **Copy** group-chat message. `#/?d=2026-10-08` opens a particular date. |
-| `#/schedule` | everyone | The weekly timetable with bell times. An editor can swap two classes — on the same day or across days — or cancel one, for a single date or for good. |
-| `#/school-calendar` | everyone | Approved school dates, selectable month grid, category filters, event details and monthly agenda. Separate from the homework calendar. |
-| `#/news` | everyone | Class News archive and category filters. Admins/authorized news managers also manage posts and private birthday settings. |
-| `#/materials` | everyone | Review sheets, notes and slides. Editors upload; everyone downloads. |
-| `#/post` | everyone | Sign in or sign up. Editors get the form to add / edit / delete items. |
+| Any route while signed out | visitors | Dedicated Sign In / Sign Up page only; no class-page navigation or class-data requests. |
+| `#/` | signed-in users | One day at a time: what is due (on today, the next school day's hand-ins), the month calendar, and (for editors) the **Copy** group-chat message. `#/?d=2026-10-08` opens a particular date. |
+| `#/schedule` | signed-in users | The weekly timetable with bell times. An editor can swap two classes — on the same day or across days — or cancel one, for a single date or for good. |
+| `#/school-calendar` | signed-in users | Approved school dates, selectable month grid, category filters, event details and monthly agenda. Separate from the homework calendar. |
+| `#/news` | signed-in users | Class News archive and category filters. Admins/authorized news managers also manage posts and private birthday settings. |
+| `#/materials` | signed-in users | Private downloads. Editors upload teacher materials; students upload/edit their own notes. |
+| `#/post` | editors/admins | Add / edit / delete homework. Readers are redirected to Today. |
 | `#/people` | admins | Every account, and what each one may do. |
 
 ## Accounts
 
-Anyone may sign up with an email address. A new account is a **reader**: it can read the site and
-nothing else. An **admin** raises the few people who post to **editor** on the `#/people` page;
-an **admin** can also hand out permissions. The rule is enforced in the database, not just in the
-browser, so a reader cannot write even by other means.
+Sign-in is required throughout the app. Anyone may register with an email address. New accounts receive **Reader**, never Editor or Admin; Readers can view class content and share their own student notes, but cannot edit homework/timetables/teacher materials or access administration. Admins assign the existing Editor/Admin roles on People. News management remains a separate permission.
 
-Setting it up once, in Supabase:
+The session is persisted by Supabase across refreshes. Initial authentication/profile checks show a loading state; protected pages load only after success. Sign-in opens Today. Every signed-in role has a Sign out button at the top of the page, including on mobile. Missing/error profiles default to Reader and never grant editing/news-management fallback permissions.
 
-1. SQL Editor → run `supabase/schema.sql`, then `supabase/accounts.sql`.
-2. Authentication → Sign In / Providers → Email: turn **Allow new users to sign up** on and
-   **Confirm email** off (confirmation mail is unreliable in mainland China).
-3. Sign up on the site with your own address, then in SQL Editor:
-   `update public.profiles set role = 'admin' where email = 'you@example.com';`
+**Manual backend setup is required:** follow [Authentication deployment and policy review](docs/AUTHENTICATION_DEPLOYMENT.md). The new migration is prepared, not applied. Frontend deployment alone does not close old direct API/public-file access. Leave open registration enabled; preserve your chosen email-confirmation setting and configure confirmation redirects if enabled.
 
-Accounts that existed before step 1 have no profile row yet; the bottom of `accounts.sql` has the
-statement that gives them one.
+Open registration is not a class-membership check: anyone who registers can read the class content. Do not treat the login page as an invitation-only boundary.
 
 ## Run locally
 
@@ -42,8 +35,7 @@ npm install
 npm run dev
 ```
 
-With no `.env.local`, the app runs in **demo mode**: sample data, saved only in that browser.
-Uploaded files are kept as data URLs there, so demo mode caps them at 1 MB.
+With no Supabase configuration, the app shows a sign-in setup notice and does not expose a demo Admin session. Existing local demo data is not deleted, but the authenticated application requires Supabase.
 
 ## How the rules work
 
@@ -61,14 +53,9 @@ Uploaded files are kept as data URLs there, so demo mode caps them at 1 MB.
 
 ## Connect Supabase (shared data)
 
-1. Create a Supabase project.
-2. SQL Editor → paste and run `supabase/schema.sql`.
-3. Storage → New bucket → name it `materials` and tick **Public bucket**.
-4. Authentication → Sign In / Providers → turn **off** "Allow new users to sign up".
-5. Authentication → Users → **Add user** with your email + password (this is your editor account).
-6. `cp .env.example .env.local` and fill in the URL and anon key from Project Settings → API.
+Use the [manual deployment guide](docs/AUTHENTICATION_DEPLOYMENT.md) for an existing project or fresh installation. Create teacher `materials` as a **private** bucket on new installations. Apply the authentication migration last, after the base/account/news/notes schemas. Never rerun old public-read migrations after it.
 
-Anyone can read; only signed-in users can write, and sign-ups are off, so that's only you.
+Configure `.env.local` from `.env.example` using only the project URL and publishable/anon key. Never put a service-role key in frontend environment files. New users sign up normally as Readers; any initial admin assignment must be an explicit, targeted manual action, not a bulk promotion.
 
 ## Deploy
 
@@ -76,9 +63,14 @@ Anyone can read; only signed-in users can write, and sign-ups are off, so that's
 any static host. In mainland China, `*.vercel.app` and `*.pages.dev` are often unreachable in
 WeChat — pick a host classmates can actually open, then pin the link in the group.
 
+Pushing `main` triggers the existing GitHub Pages workflow. It does **not** run SQL or deploy Supabase functions. Teacher downloads use one-minute signed links (Get file → Open); public storage URLs must stop working after the manual bucket-privacy migration. Copied signed links remain usable until expiry; existing downloaded copies cannot be revoked.
+
 ## Code map
 
 - `src/lib/store.ts` — data layer: Supabase, or localStorage in demo mode
+- `src/lib/auth-session.ts` — fail-closed session lifecycle, subscription cleanup and stale-request protection
+- `src/lib/access.ts` — editor/admin route guards
+- `src/pages/Auth.tsx` — dedicated Sign In / Sign Up page
 - `src/lib/homework.ts` — "coming up" rules and the group-chat message text
 - `src/lib/pagination.ts` — fetches all homework pages so older records do not hide future deadlines
 - `src/lib/dates.ts` — local `YYYY-MM-DD` date helpers
@@ -87,7 +79,7 @@ WeChat — pick a host classmates can actually open, then pin the link in the gr
 - `src/lib/academic-calendar.ts` — school calendar grids, inclusive event ranges and month navigation
 - `src/lib/academic-events.ts` — approved school events only; never imports private reference files
 - `src/pages/SchoolCalendar.tsx` — separate school calendar, details and month agenda
-- `src/pages/` — Today (includes the calendar), Schedule, Materials, Post (sign-in and sign-up live in Post), People
+- `src/pages/` — authenticated Today, Schedule, Materials, Post (editor-only), People (admin-only), News and School Calendar
 - `src/components/Tour.tsx` — the guided tour that dims the page and lights one part at a time
 - `src/components/` — shared UI (cards, timeline, month grid, icons)
 - `src/styles.css` — the theme; every colour is a CSS variable at the top, light and dark
@@ -96,7 +88,7 @@ The font (Plus Jakarta Sans) is bundled via `@fontsource` rather than Google Fon
 
 ## Checks and private references
 
-Run `npm test` with Node.js 24 or newer for date-selection, deadline-grouping, message-regression and pagination tests. These use Node's built-in TypeScript support (which may print an experimental warning). Run `npm run build` for TypeScript and the production build; the existing Node.js 20 deployment build remains supported.
+Run `npm test` with Node.js 24 or newer. Tests cover authentication transitions, real in-memory React rendering, role guards, session configuration, private download requests, homework/calendar/news/notes behavior, and the actual SQL/RLS migrations in local PostgreSQL. No live project is contacted. TypeScript stripping may print an experimental warning. Run `npm run build` for TypeScript and the production build; the Node.js 20 deployment build remains supported.
 
 `reference/` is ignored by Git. Keep the private academic calendar there for local reference only; do not place it in public assets or upload it as a material.
 
@@ -114,6 +106,6 @@ Files now separates Teacher Materials from Student Notes. Signed-in students pub
 
 Review [Phase 5 setup and security notes](docs/PHASE_5_STUDENT_NOTES.md) and [the migration SQL](supabase/migrations/20261011_student_notes.sql). Neither the migration nor the secure `upload-student-note` function has been applied/deployed. Both are required for shared uploads. Files support PDF/images/Word/PowerPoint up to 20 MiB each (demo: under 1 MB); total capacity depends on the project's storage allowance.
 
-The notes bucket is private, with short-lived downloads. Notes and contributor display names are visible to anyone with the site link; moderation reports remain admin-only. Upload format checks are not antivirus. Keep all service-role secrets server-side.
+The notes bucket is private, with short-lived downloads. After the authentication migration, notes and contributor display names are visible only to signed-in users; moderation reports remain admin-only. Upload format checks are not antivirus. Keep all service-role secrets server-side.
 
 `npm test` also covers notes validation, ownership, reports, real local PostgreSQL RLS, restrictive storage guards, and the upload handler with mocked services. Hosted integration requires separately approved staging setup.

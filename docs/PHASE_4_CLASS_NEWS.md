@@ -1,5 +1,7 @@
 # Phase 4 — Class News implementation and migration review
 
+Anonymous-read descriptions below are historical, superseded by [the authentication deployment guide](AUTHENTICATION_DEPLOYMENT.md). Apply the 20261015 authentication migration last; this phase migration alone does not provide the current privacy rules.
+
 ## What is implemented
 
 - Today has a compact Class News section below homework, with three recent/pinned posts, dates, categories, previews, optional images, and View All.

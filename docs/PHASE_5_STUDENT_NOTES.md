@@ -1,5 +1,7 @@
 # Phase 5 — Student Notes
 
+Public-link access described below is historical, superseded by [the authentication deployment guide](AUTHENTICATION_DEPLOYMENT.md). Apply the 20261015 authentication migration last; notes/files require a session after that manual setup.
+
 Implemented locally. No production migration, function deployment, data changes, commit, push or website deployment performed.
 
 ## Features and files

@@ -32,6 +32,7 @@ Preserve Classboard's existing visual style, typography, components and navigati
 - Keep school dates separate from homework deadlines.
 - Enforce permissions at the database and storage layers.
 - Protect student information and private reference documents.
+- Require authentication for every application page; default failed/missing profiles to Reader, never Editor/Admin. Keep open registration and explicit admin-assigned roles.
 
 ## Accessibility & Inclusion
 

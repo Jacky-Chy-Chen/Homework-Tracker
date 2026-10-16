@@ -128,7 +128,7 @@ function Editor({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar editor />
+      <TopBar user={data.user} />
 
       <header className="page-head">
         <div className="page-head-text">

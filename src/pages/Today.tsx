@@ -79,7 +79,7 @@ export default function Today({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar editor={data.editor} />
+      <TopBar user={data.user} />
 
       <header className="page-head" data-tour="day-head">
         <div className="page-head-text">

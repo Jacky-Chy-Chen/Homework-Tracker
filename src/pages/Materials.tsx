@@ -34,7 +34,7 @@ export default function Materials({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar editor={data.editor} />
+      <TopBar user={data.user} />
 
       <header className="page-head" data-tour="files">
         <div className="page-head-text">

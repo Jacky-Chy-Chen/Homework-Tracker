@@ -90,7 +90,7 @@ test('successful login redirects to Today, preserves restored sessions, and sign
     await close(root)
     root=await mount() // Persisted SDK session, as after a refresh.
     assert.match(text(root),/Coming Up/)
-    const button=root.root.findAllByType('button').find(b=>b.children.join('')==='Sign out')
+    const button=root.root.findAllByType('button').find(b=>b.props['aria-label']==='Sign out')
     assert.ok(button,'all roles have a visible, labeled sign-out button')
     await act(async()=>button.props.onClick())
     assert.match(text(root),/Sign in/)
@@ -108,7 +108,7 @@ test('reader/editor/admin direct routes enforce interface permissions',async()=>
       assert.equal(state.reads.includes('people'),role==='admin')
       await navigate('#/post')
       assert.equal(root.root.findAllByType(Post).length,role==='reader'?0:1)
-      assert.ok(root.root.findAllByType('button').some(b=>b.children.join('')==='Sign out'))
+      assert.ok(root.root.findAllByType('button').some(b=>b.props['aria-label']==='Sign out'))
     } finally { await close(root) }
   }
 })
@@ -165,4 +165,25 @@ test('failed initial authentication shows an error without loading class data',a
     assert.equal(root.root.findAllByType('nav').length,0)
     assert.deepEqual(state.reads,[])
   } finally { await close(root) }
+})
+
+test('unified navigation preserves role filtering and accurate badges at every requested width',async()=>{
+  for(const width of [320,375,768,1024,1440]) for(const role of ['reader','editor','admin']) {
+    window.innerWidth=width
+    reset({ ...reader,role })
+    const root=await mount()
+    try {
+      const nav=root.root.findByProps({ 'aria-label':'Main navigation' })
+      const hrefs=nav.findAllByType('a').map(link=>link.props.href)
+      assert.deepEqual(hrefs,['#/','#/schedule','#/school-calendar','#/materials','#/news',...(role!=='reader'?['#/post']:[]),...(role==='admin'?['#/people']:[])])
+      const badges=root.root.findAll(node=>node.type==='span' && node.props['data-role'])
+      assert.ok(badges.length>=2)
+      for(const badge of badges) {
+        assert.equal(badge.props['data-role'],role)
+        assert.equal(badge.children.filter(child=>typeof child==='string').join(''),{ admin:'Admin',editor:'Editor',reader:'Reader' }[role])
+      }
+      assert.equal(root.root.findAllByProps({ className:'tabs' }).length,0)
+    } finally { await close(root) }
+  }
+  delete window.innerWidth
 })

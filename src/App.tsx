@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { canEdit, isAdmin, store, type Account, type Item, type Material, type Timetable } from './lib/store'
 import { DEFAULT_TIMETABLE, type SlotChange } from './lib/schedule'
 import { addDays, todayISO } from './lib/dates'
-import Icon, { type IconName } from './components/Icon'
-import { ThemeToggle, Wordmark } from './components/ui'
+import type { IconName } from './components/Icon'
+import Sidebar from './components/Sidebar'
 import Today from './pages/Today'
 import Schedule from './pages/Schedule'
 import Materials from './pages/Materials'
@@ -217,42 +217,8 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
   const nav = NAV.filter((n) => (!n.editorOnly || editor) && (!n.adminOnly || isAdmin(user)))
 
   return (
-    <div className="app">
-      {store.mode === 'demo' && (
-        <div className="demo-banner">Demo mode · saved only in this browser</div>
-      )}
-
-        <aside className="sidebar">
-          <a href="#/" className="sidebar-brand"><Wordmark /></a>
-          <nav className="sidebar-nav">
-            {nav.map((n) => (
-              <a key={n.route} href={n.href} className={route === n.route ? 'active' : ''}>
-                <Icon name={n.icon} size={18} stroke={1.8} />
-                {n.label}
-              </a>
-            ))}
-          </nav>
-          <div className="sidebar-bottom">
-            <button className="theme-row" data-tour="help" onClick={() => setTour(true)}>
-              <Icon name="help" size={18} stroke={1.8} />
-              Guide
-            </button>
-            <ThemeToggle row />
-              <div className="sidebar-user">
-                <span className="pill-editor">
-                  <span className="dot" />
-                  {user.role === 'admin' ? 'Admin' : user.role === 'editor' ? 'Editor' : 'Reader'}
-                </span>
-                <span className="small faint">{user.name || user.email}</span>
-              </div>
-          </div>
-        </aside>
-
+    <Sidebar user={user} items={nav} route={route} onGuide={() => setTour(true)} guideOpen={tour} signOut={signOut}>
       <main className={`page page-${route}`}>
-        <div className="session-actions">
-          <span className="small muted">{user.name || user.email} · {user.role === 'admin' ? 'Admin' : user.role === 'editor' ? 'Editor' : 'Reader'}</span>
-          <button className="btn-secondary" onClick={() => { void signOut() }}>Sign out</button>
-        </div>
         {error && <div className="alert error">Something went wrong: {error}</div>}
         {route === 'today' && <Today data={data} />}
         {route === 'schedule' && <Schedule data={data} />}
@@ -262,17 +228,7 @@ function Classroom({ user, signOut }: { user: Account; signOut: () => Promise<vo
         {route === 'school-calendar' && <SchoolCalendar data={data} />}
         {route === 'news' && <News data={data} />}
       </main>
-
       {tour && <Tour editor={editor} admin={isAdmin(user)} onClose={() => setTour(false)} />}
-
-        <nav className="tabs">
-          {nav.filter(n => n.route !== 'news').map((n) => (
-            <a key={n.route} href={n.href} className={route === n.route ? 'active' : ''}>
-              <Icon name={n.icon} size={22} stroke={1.8} />
-              {n.label}
-            </a>
-          ))}
-        </nav>
-    </div>
+    </Sidebar>
   )
 }

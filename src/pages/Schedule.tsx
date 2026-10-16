@@ -37,7 +37,7 @@ export default function Schedule({ data }: { data: AppData }) {
 
   return (
     <>
-      <TopBar editor={data.editor} />
+      <TopBar user={data.user} />
 
       <header className="page-head">
         <div className="page-head-text">

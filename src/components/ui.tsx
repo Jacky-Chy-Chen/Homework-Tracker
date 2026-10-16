@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { dateTile, daysBetween, fmtDue, fmtTag, relative, todayISO } from '../lib/dates'
 import { subjectColor, TYPE_LABEL } from '../lib/homework'
-import { store, type Item, type Material } from '../lib/store'
+import { store, type Account, type Item, type Material } from '../lib/store'
 import { toggleDone, useDone } from '../lib/done'
 import { setTheme, useTheme } from '../lib/theme'
 import Icon from './Icon'
+import RoleBadge from './RoleBadge'
+import { SidebarContext } from './SidebarContext'
 
 export const APP_NAME = 'Classboard'
 export const CLASS_LABEL = 'G8 (5)'
@@ -30,9 +32,9 @@ export function ThemeToggle({ row }: { row?: boolean }) {
   const label = `Switch to ${next} mode`
   const icon = <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={row ? 18 : 19} stroke={1.8} />
   return row ? (
-    <button className="theme-row" onClick={() => setTheme(next)}>
+    <button className="theme-row" onClick={() => setTheme(next)} aria-label={label}>
       {icon}
-      {next === 'light' ? 'Light mode' : 'Dark mode'}
+      <span className="sidebar-label">{next === 'light' ? 'Light mode' : 'Dark mode'}</span>
     </button>
   ) : (
     <button className="icon-btn quiet" onClick={() => setTheme(next)} aria-label={label} title={label}>
@@ -42,28 +44,15 @@ export function ThemeToggle({ row }: { row?: boolean }) {
 }
 
 /** Authentication is handled before any class page is mounted. */
-export function TopBar({ editor }: { editor?: boolean }) {
+export function TopBar({ user }: { user: Account | null }) {
+  const navigation = useContext(SidebarContext)
   return (
     <div className="topbar">
+      {navigation?.mode === 'phone' && <button ref={navigation.menuRef} className="icon-btn navigation-menu" onClick={navigation.toggle}
+        aria-label="Open navigation menu" aria-expanded={navigation.open} aria-controls="classboard-navigation" data-tour="help"><Icon name="menu" size={20} /></button>}
       <Wordmark />
       <div className="topbar-right">
-        <button
-          className="icon-btn"
-          data-tour="help"
-          aria-label="Open the guide"
-          onClick={() => window.dispatchEvent(new Event('classboard:guide'))}
-        >
-          <Icon name="help" size={19} stroke={1.8} />
-        </button>
-        {editor ? (
-          <span className="pill-editor">
-            <span className="dot" />
-            Editor
-          </span>
-        ) : (
-          <span className="small muted">Reader</span>
-        )}
-        <ThemeToggle />
+        {user && <RoleBadge role={user.role} />}
       </div>
     </div>
   )

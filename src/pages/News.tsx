@@ -23,7 +23,7 @@ export default function News({ data }: { data: AppData }) {
   const selected = requestedPost ? sortedNews(data.news, data.newsDay).find(n => n.id === requestedPost) : null
   return (
     <>
-      <TopBar editor={data.editor} />
+      <TopBar user={data.user} />
       <header className="page-head"><div className="page-head-text"><h1>Class News</h1></div></header>
       <p className="lead">Announcements, achievements and updates from the class.</p>
       <div className="news-toolbar">

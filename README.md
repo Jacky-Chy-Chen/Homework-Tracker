@@ -22,7 +22,13 @@ with automatic reminders for projects/tests due in the next 14 days.
 
 Sign-in is required throughout the app. Anyone may register with an email address. New accounts receive **Reader**, never Editor or Admin; Readers can view class content and share their own student notes, but cannot edit homework/timetables/teacher materials or access administration. Admins assign the existing Editor/Admin roles on People. News management remains a separate permission.
 
-The session is persisted by Supabase across refreshes. Initial authentication/profile checks show a loading state; protected pages load only after success. Sign-in opens Today. Every signed-in role has a Sign out button at the top of the page, including on mobile. Missing/error profiles default to Reader and never grant editing/news-management fallback permissions.
+The session is persisted by Supabase across refreshes. Initial authentication/profile checks show a loading state; protected pages load only after success. Sign-in opens Today. Every signed-in role has a Sign out button at the bottom of the unified sidebar; on phones, open the top-left menu first. Missing/error profiles default to Reader and never grant editing/news-management fallback permissions.
+
+## Responsive navigation
+
+One sidebar serves every signed-in page; there is no bottom navigation. Desktop (1024px+) defaults to 220px and can collapse to a 60px rail, pushing the page in either state. Tablets (768–1023px) default to a 60px rail and expand as a dimmed overlay. Phones start with the menu closed and open a 220px overlay from the top-left menu button.
+
+Desktop and tablet preferences are saved separately in localStorage. Overlay navigation closes on selection, backdrop click or Escape, traps focus, locks background scrolling and returns focus to the opener. Guide, Theme, account information and Sign out stay near the bottom; short sidebars scroll. Role badges use the actual profile role, including **Admin** on narrow screens. See [sidebar behavior and verification](docs/SIDEBAR.md).
 
 **Manual backend setup is required:** follow [Authentication deployment and policy review](docs/AUTHENTICATION_DEPLOYMENT.md). The new migration is prepared, not applied. Frontend deployment alone does not close old direct API/public-file access. Leave open registration enabled; preserve your chosen email-confirmation setting and configure confirmation redirects if enabled.
 

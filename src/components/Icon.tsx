@@ -1,4 +1,6 @@
 const PATHS = {
+  menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+  logout: <><path d="M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5M10 12h11M17 8l4 4-4 4" /></>,
   today: <path d="M4 6.5h16M4 12h16M4 17.5h10" />,
   calendar: (
     <>

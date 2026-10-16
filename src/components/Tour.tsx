@@ -104,7 +104,7 @@ const STEPS: Step[] = [
 
 /** The first element matching the selector that is actually on screen. */
 const findTarget = (sel: string) =>
-  [...document.querySelectorAll<HTMLElement>(sel)].find((el) => el.offsetParent !== null || el === document.body) ?? null
+  [...document.querySelectorAll<HTMLElement>(sel)].find((el) => !el.closest('[inert],[hidden]') && (el.offsetParent !== null || el === document.body)) ?? null
 
 interface Rect { top: number; left: number; width: number; height: number }
 

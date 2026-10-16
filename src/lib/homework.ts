@@ -136,6 +136,29 @@ export const SUBJECT_SETS: { label: string; options: string[] }[] = [
   { label: 'Math', options: ['Math(S+1)', 'Math(S+2)', 'Math(S+3)', 'Math(S)'] },
 ]
 
+/** Display metadata only: keys remain the original subject values saved with homework. */
+export const SUBJECT_CLASSES: Readonly<Record<string, { readonly className: string; readonly teacher: string }>> = {
+  'EC(H)': { className: 'ECH', teacher: 'Mr. Song' },
+  'EC(S+1)': { className: 'ECS+1', teacher: 'Ms. Tong' },
+  'EC(S+2)': { className: 'ECS+2', teacher: 'Ms. Kim' },
+  'EC(S)': { className: 'ECS', teacher: 'Ms. Monica' },
+  'EE(H)': { className: 'EEH', teacher: 'Ms. Sydnie' },
+  'EE(S+1)': { className: 'EES+1', teacher: 'Ms. Grace' },
+  'EE(S+2)': { className: 'EES+2', teacher: 'Mr. Meehan' },
+  'EE(S)': { className: 'EES', teacher: 'Mr. Joe' },
+  'Math(S+1)': { className: 'Math S+1', teacher: '张老师' },
+  'Math(S+2)': { className: 'Math S+2', teacher: '陈老师' },
+  'Math(S+3)': { className: 'Math S+3', teacher: '韩老师' },
+  'Math(S)': { className: 'Math S', teacher: '陈老师' },
+}
+
+/** Custom subjects retain their own name, including names matching object properties. */
+export function subjectOptionLabel(subject: string) {
+  if (!Object.prototype.hasOwnProperty.call(SUBJECT_CLASSES, subject)) return subject
+  const entry = SUBJECT_CLASSES[subject]
+  return `${entry.className} · ${entry.teacher}`
+}
+
 export function subjectColor(subject: string) {
   const fixed = FIXED[subjectBase(subject).toLowerCase()]
   if (fixed) return fixed

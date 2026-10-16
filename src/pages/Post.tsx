@@ -3,7 +3,7 @@ import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import { ItemRow, SectionHeading, TopBar } from '../components/ui'
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
-import { subjectBase, SUBJECT_SETS, subjectColor, TYPE_LABEL } from '../lib/homework'
+import { subjectBase, SUBJECT_SETS, subjectColor, subjectOptionLabel, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type ItemType, type NewItem } from '../lib/store'
 
 const TYPES: ItemType[] = ['daily', 'project', 'test', 'other']
@@ -150,7 +150,7 @@ function Editor({ data }: { data: AppData }) {
             </div>
           </div>
 
-          <div className="field">
+          <div className="field subject-selector">
             <span className="field-label">Subject</span>
             <div className="chips">
                 {subjects.map((s) => {
@@ -184,7 +184,7 @@ function Editor({ data }: { data: AppData }) {
                       onClick={() => setOpenSet(open ? null : g.label)}
                     >
                       <span className="swatch" style={{ background: c }} />
-                      {chosen ?? g.label}
+                      <span>{chosen ? subjectOptionLabel(chosen) : g.label}</span>
                       <Icon name="down" size={12} stroke={2.2} />
                     </button>
                   )
@@ -209,7 +209,7 @@ function Editor({ data }: { data: AppData }) {
                         style={on ? { borderColor: c, background: `${c}24` } : undefined}
                         onClick={() => pickSubject(o)}
                       >
-                        {o}
+                        <span>{subjectOptionLabel(o)}</span>
                       </button>
                     )
                   })}

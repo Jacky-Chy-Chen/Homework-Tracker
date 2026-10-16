@@ -819,6 +819,12 @@ button.week-cell:hover { background: var(--surface-2); }
 .chip-new { border-style: dashed; color: var(--muted); }
 .chip-new.on { border-color: var(--accent); color: var(--accent-ink); box-shadow: none; }
 
+/* Class/teacher labels can wrap without pushing the homework form off-screen. */
+.subject-selector .chip { max-width: 100%; padding-block: 8px; white-space: normal; overflow-wrap: anywhere; }
+.subject-selector .chip .swatch,
+.subject-selector .chip svg { flex-shrink: 0; }
+.subject-selector .chip > span:not(.swatch) { min-width: 0; }
+
 .row-list {
   display: flex;
   flex-direction: column;

@@ -67,7 +67,7 @@ export function buildMessage(items: Item[], day: string, swaps: string[] = [], s
   for (const [subject, list] of groupBySubject(today)) {
     for (const i of list) {
       const tag = i.type === 'daily' ? '' : ` ${TYPE_EMOJI[i.type]}${TYPE_LABEL[i.type]}`
-      lines.push(`【${subject}】${i.title}${tag} — due ${fmtShort(i.due_date)}`)
+      lines.push(`【${subjectOptionLabel(subject)}】${i.title}${tag} — due ${fmtShort(i.due_date)}`)
       if (i.notes) lines.push(`   ${i.notes}`)
     }
   }
@@ -80,7 +80,7 @@ export function buildMessage(items: Item[], day: string, swaps: string[] = [], s
   if (upcoming.length) {
     lines.push('', '⏰ Coming up:')
     for (const i of upcoming) {
-      lines.push(`${TYPE_EMOJI[i.type]} ${i.subject} ${TYPE_LABEL[i.type].toLowerCase()}: ${i.title} — ${fmtShort(i.due_date)}, ${relative(day, i.due_date)}`)
+      lines.push(`${TYPE_EMOJI[i.type]} ${subjectOptionLabel(i.subject)} ${TYPE_LABEL[i.type].toLowerCase()}: ${i.title} — ${fmtShort(i.due_date)}, ${relative(day, i.due_date)}`)
     }
   }
   return lines.join('\n')
@@ -98,7 +98,7 @@ export function buildWeekMessage(items: Item[], from: string) {
     lines.push('Nothing big due this week.')
   } else {
     for (const i of due) {
-      lines.push(`${TYPE_EMOJI[i.type]} ${fmtShort(i.due_date)} 【${i.subject}】${i.title}${i.type === 'daily' ? '' : ` (${TYPE_LABEL[i.type].toLowerCase()})`}`)
+      lines.push(`${TYPE_EMOJI[i.type]} ${fmtShort(i.due_date)} 【${subjectOptionLabel(i.subject)}】${i.title}${i.type === 'daily' ? '' : ` (${TYPE_LABEL[i.type].toLowerCase()})`}`)
       if (i.notes) lines.push(`   ${i.notes}`)
     }
   }
@@ -123,8 +123,11 @@ const FIXED: Record<string, string> = {
   it: '#7DCFFF',
   optional: '#A0A8B4',
   club: '#BB9AF7',
+  other: '#A0A8B4',
 }
 const PALETTE = ['#4FD1C5', '#F6C85F', '#FF8FB1', '#7AA2F7', '#9ECE6A', '#B69CFF', '#FF9E64', '#73DACA', '#E0AF68', '#BB9AF7']
+
+export const OTHER_SUBJECT = 'Other'
 
 /** 'Math(S+1)' and 'Math' are the same subject as far as colour goes. */
 export const subjectBase = (subject: string) => subject.trim().split('(')[0].trim()
@@ -156,7 +159,9 @@ export const SUBJECT_CLASSES: Readonly<Record<string, { readonly className: stri
 export function subjectOptionLabel(subject: string) {
   if (!Object.prototype.hasOwnProperty.call(SUBJECT_CLASSES, subject)) return subject
   const entry = SUBJECT_CLASSES[subject]
-  return `${entry.className} · ${entry.teacher}`
+  // Only display text changes: levels remain in keys and saved homework values.
+  const className = entry.className.replace(/^(EC|EE)(?=[HS])/, '$1 ').replace(/\+\d+$/, '+')
+  return `${className} · ${entry.teacher}`
 }
 
 export function subjectColor(subject: string) {

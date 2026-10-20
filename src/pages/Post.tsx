@@ -3,7 +3,7 @@ import type { AppData } from '../App'
 import Icon from '../components/Icon'
 import { ItemRow, SectionHeading, TopBar } from '../components/ui'
 import { addDays, daysBetween, nextSchoolDay, todayISO } from '../lib/dates'
-import { subjectBase, SUBJECT_SETS, subjectColor, subjectOptionLabel, TYPE_LABEL } from '../lib/homework'
+import { subjectBase, SUBJECT_SETS, subjectColor, subjectOptionLabel, OTHER_SUBJECT, TYPE_LABEL } from '../lib/homework'
 import { store, type Item, type ItemType, type NewItem } from '../lib/store'
 
 const TYPES: ItemType[] = ['daily', 'project', 'test', 'other']
@@ -32,7 +32,7 @@ function Editor({ data }: { data: AppData }) {
   // Every class on the timetable is offered as a subject, so the usual ones are
   // there from the start; anything typed by hand joins them.
   const all = useMemo(
-    () => [...new Set([...data.timetable.flat(), ...data.items.map((i) => i.subject)].filter((s): s is string => !!s))].sort(),
+    () => [...new Set([OTHER_SUBJECT, ...data.timetable.flat(), ...data.items.map((i) => i.subject)].filter((s): s is string => !!s))].sort(),
     [data.timetable, data.items],
   )
   // English, EC and maths are taught in sets, so each gets one chip that opens
@@ -89,7 +89,7 @@ function Editor({ data }: { data: AppData }) {
       if (editingId) await store.update(editingId, clean)
       else await store.add(clean)
       await data.reload()
-      setFlash(editingId ? 'Saved changes' : `Added ${clean.subject}: ${clean.title}`)
+      setFlash(editingId ? 'Saved changes' : `Added ${subjectOptionLabel(clean.subject)}: ${clean.title}`)
       setTimeout(() => setFlash(null), 2500)
       // Keep type and dates so posting several subjects in a row is quick.
       setForm((f) => ({ ...blank(), type: f.type, assigned_date: f.assigned_date, due_date: f.due_date }))
@@ -111,7 +111,7 @@ function Editor({ data }: { data: AppData }) {
   }
 
   const remove = async (i: Item) => {
-    if (!confirm(`Delete "${i.subject}: ${i.title}"?`)) return
+    if (!confirm(`Delete "${subjectOptionLabel(i.subject)}: ${i.title}"?`)) return
     try {
       await store.remove(i.id)
       await data.reload()

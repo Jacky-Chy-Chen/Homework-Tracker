@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
 import type { AppData } from '../App'
 import Icon from '../components/Icon'
-import { MaterialLink, SectionHeading, TopBar } from '../components/ui'
+import { MaterialLink, SectionHeading, SubjectLabel, TopBar } from '../components/ui'
 import { fmtTag } from '../lib/dates'
-import { subjectColor } from '../lib/homework'
+import { OTHER_SUBJECT, subjectColor, subjectOptionLabel } from '../lib/homework'
 import { store, type Material } from '../lib/store'
 import StudentNotes from '../components/StudentNotes'
 
@@ -67,10 +67,7 @@ export default function Materials({ data }: { data: AppData }) {
           {bySubject.map(([subject, list]) => (
             <section key={subject} className="stack">
               <SectionHeading count={list.length}>
-                <span className="subject-label" style={{ '--c': subjectColor(subject) } as React.CSSProperties}>
-                  <span className="swatch" style={{ background: subjectColor(subject) }} />
-                  {subject}
-                </span>
+                <SubjectLabel subject={subject} />
               </SectionHeading>
               <div className="row-list">
                 {list.map((m) => (
@@ -121,10 +118,10 @@ function UploadSheet({ data, onClose }: { data: AppData; onClose: () => void }) 
   const [err, setErr] = useState<string | null>(null)
 
   const subjects = useMemo(
-    () => [...new Set([...(data.timetable.flat().filter(Boolean) as string[]), ...data.items.map((i) => i.subject)])].sort(),
+    () => [...new Set([OTHER_SUBJECT, ...(data.timetable.flat().filter(Boolean) as string[]), ...data.items.map((i) => i.subject)])].sort(),
     [data.timetable, data.items],
   )
-  const linkable = data.items.filter((i) => i.type === 'test' || i.type === 'project')
+  const linkable = data.items.filter((i) => i.type === 'test' || i.type === 'project' || i.subject === OTHER_SUBJECT)
 
   const pick = (f: File | null) => {
     setFile(f)
@@ -176,12 +173,12 @@ function UploadSheet({ data, onClose }: { data: AppData; onClose: () => void }) 
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Unit 2 review sheet" required />
         </label>
 
-        <div className="field">
+        <div className="field subject-selector">
           <span className="field-label">Subject</span>
           <div className="chips">
             {subjects.map((s) => (
               <button type="button" key={s} className={`chip ${subject === s ? 'on' : ''}`} aria-pressed={subject === s} onClick={() => setSubject(s)}>
-                <span className="swatch" style={{ background: subjectColor(s) }} />{s}
+                <span className="swatch" style={{ background: subjectColor(s) }} /><span>{subjectOptionLabel(s)}</span>
               </button>
             ))}
           </div>
@@ -194,11 +191,11 @@ function UploadSheet({ data, onClose }: { data: AppData; onClose: () => void }) 
 
         {linkable.length > 0 && (
           <label className="field">
-            <span className="field-label">For a test or project <span className="faint">· optional</span></span>
+            <span className="field-label">For a test, project or Other homework <span className="faint">· optional</span></span>
             <select value={itemId} onChange={(e) => setItemId(e.target.value)}>
               <option value="">Not linked</option>
               {linkable.map((i) => (
-                <option key={i.id} value={i.id}>{i.subject}: {i.title}</option>
+                <option key={i.id} value={i.id}>{subjectOptionLabel(i.subject)}: {i.title}</option>
               ))}
             </select>
           </label>

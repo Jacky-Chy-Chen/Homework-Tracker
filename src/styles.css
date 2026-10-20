@@ -262,13 +262,15 @@ h2 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
 }
 .card-body { display: flex; flex-direction: column; gap: 6px; flex-grow: 1; min-width: 0; }
 .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.card-top-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.card-top-left { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
 .card-title { font-size: 16px; font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; word-break: break-word; }
 .card-notes { font-size: 14px; line-height: 1.45; color: var(--muted); white-space: pre-wrap; }
 .card-foot { font-size: 13px; font-weight: 500; color: var(--faint); }
 .due { font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
 
-.subject-label { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: var(--c); white-space: nowrap; }
+.subject-label { display: inline-flex; align-items: center; gap: 7px; min-width: 0; max-width: 100%; font-size: 13px; font-weight: 600; color: var(--c); white-space: normal; overflow-wrap: anywhere; }
+.subject-label .swatch { flex-shrink: 0; }
+.subject-label > span:not(.swatch) { min-width: 0; }
 [data-theme='dark'] .subject-label { color: var(--text); color: color-mix(in srgb, var(--c) 72%, #FFFFFF); }
 
 .tag { flex: none; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }

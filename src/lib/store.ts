@@ -188,7 +188,12 @@ function supabaseStore(sb: SupabaseClient): Store {
       check(await sb.auth.signInWithPassword({ email, password }))
     },
     async signUp(email, password, name) {
-      const res = check(await sb.auth.signUp({ email, password, options: { data: { name } } }))
+      // Canonical GitHub Pages application root, not the account's root website.
+      // No hash route here: Supabase uses the fragment to return session tokens.
+      const res = check(await sb.auth.signUp({ email, password, options: {
+        data: { name },
+        emailRedirectTo: 'https://jacky-chy-chen.github.io/Homework-Tracker/',
+      } }))
       // With "Confirm email" off, Supabase signs the person in straight away.
       return { needsConfirmation: !res.data.session }
     },

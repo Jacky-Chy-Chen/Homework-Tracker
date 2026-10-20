@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 import { dateTile, daysBetween, fmtDue, fmtTag, relative, todayISO } from '../lib/dates'
-import { subjectColor, TYPE_LABEL } from '../lib/homework'
+import { subjectColor, subjectOptionLabel, TYPE_LABEL } from '../lib/homework'
 import { store, type Account, type Item, type Material } from '../lib/store'
 import { toggleDone, useDone } from '../lib/done'
 import { setTheme, useTheme } from '../lib/theme'
@@ -75,7 +75,7 @@ export function SubjectLabel({ subject }: { subject: string }) {
   return (
     <span className="subject-label" style={{ '--c': color } as React.CSSProperties}>
       <span className="swatch" style={{ background: color }} />
-      {subject}
+      <span>{subjectOptionLabel(subject)}</span>
     </span>
   )
 }
@@ -191,7 +191,7 @@ export function UpcomingCard({ item, from, files = [] }: { item: Item; from: str
 export function ItemRow({ item, onEdit, onDelete }: { item: Item; onEdit: () => void; onDelete: () => void }) {
   const today = todayISO()
   const due = item.due_date === today ? 'due today' : item.due_date < today ? relative(today, item.due_date) : fmtDue(today, item.due_date).toLowerCase()
-  const meta = [item.subject, item.type === 'daily' ? null : TYPE_LABEL[item.type].toLowerCase(), due].filter(Boolean).join(' · ')
+  const meta = [subjectOptionLabel(item.subject), item.type === 'daily' ? null : TYPE_LABEL[item.type].toLowerCase(), due].filter(Boolean).join(' · ')
   return (
     <div className="row-item">
       <span className="swatch" style={{ background: subjectColor(item.subject) }} />

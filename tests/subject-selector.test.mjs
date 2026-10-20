@@ -31,9 +31,13 @@ globalThis.subjectStore = {
   mode: 'local',
   add: async item => writes.push({ item }),
   update: async (id, item) => writes.push({ id, item }),
+  addMaterial: async (meta, file) => writes.push({ meta, file }),
+  fileUrl: async () => 'https://synthetic.invalid/private-signed-file',
 }
 const { default: Post } = await import('../src/pages/Post.tsx')
-const { SUBJECT_CLASSES, SUBJECT_SETS, subjectOptionLabel, subjectColor } = await import('../src/lib/homework.ts')
+const { default: Materials } = await import('../src/pages/Materials.tsx')
+const { ItemCard, UpcomingCard, ItemRow } = await import('../src/components/ui.tsx')
+const { SUBJECT_CLASSES, SUBJECT_SETS, subjectOptionLabel, subjectColor, buildMessage, buildWeekMessage } = await import('../src/lib/homework.ts')
 
 // Independent expectations catch incorrect teacher assignments in the shared mapping.
 const expected = [
@@ -44,14 +48,19 @@ const expected = [
   ['Math(S+1)', 'Math S+1', '张老师'], ['Math(S+2)', 'Math S+2', '陈老师'],
   ['Math(S+3)', 'Math S+3', '韩老师'], ['Math(S)', 'Math S', '陈老师'],
 ]
-const label = ([, name, teacher]) => `${name} · ${teacher}`
+const displayNames = {
+  'EC(H)': 'EC H', 'EC(S+1)': 'EC S+', 'EC(S+2)': 'EC S+', 'EC(S)': 'EC S',
+  'EE(H)': 'EE H', 'EE(S+1)': 'EE S+', 'EE(S+2)': 'EE S+', 'EE(S)': 'EE S',
+  'Math(S+1)': 'Math S+', 'Math(S+2)': 'Math S+', 'Math(S+3)': 'Math S+', 'Math(S)': 'Math S',
+}
+const label = ([value, , teacher]) => `${displayNames[value]} · ${teacher}`
 const text = node => typeof node === 'string' ? node : node.children.map(text).join('')
-const button = (root, name) => root.root.findAllByType('button').find(node => text(node) === name)
+const button = (root, name) => root.root.findAllByType('button').find(node => node.props.role !== 'radio' && text(node) === name)
 const groups = root => root.root.findAll(node => node.type === 'div' && node.props.role === 'group')
 const fixture = items => ({
   editor: true, user: { id: 'editor', name: 'Editor', role: 'editor' },
   timetable: [['EC', 'EE', 'Math', 'Physics']], items,
-  reload: async () => {}, signOut: async () => {},
+  reload: async () => {}, reloadMaterials: async () => {}, materials: [], signOut: async () => {},
 })
 async function mount(data = fixture([])) {
   let root
@@ -167,4 +176,78 @@ test('responsive selector CSS wraps full labels while retaining fixed icons and 
   assert.match(css, /\.chip\s*\{[^}]*min-height:\s*44px/)
   assert.match(css, /\.subject-selector \.chip\s*\{[^}]*max-width:\s*100%[^}]*white-space:\s*normal[^}]*overflow-wrap:\s*anywhere/)
   assert.match(css, /\.subject-selector \.chip svg\s*\{[^}]*flex-shrink:\s*0/)
+  assert.match(css, /\.subject-label\s*\{[^}]*white-space:\s*normal[^}]*overflow-wrap:\s*anywhere/)
+  assert.match(css, /\.card-top-left\s*\{[^}]*flex-wrap:\s*wrap/)
+})
+
+test('every homework card, row and copied message shows teachers without numerical levels', async () => {
+  for (const entry of expected) {
+    const item = Object.freeze({ id: entry[0], subject: entry[0], title: 'Practice', type: 'project', assigned_date: '2026-10-20', due_date: '2026-10-23', notes: null, link: null })
+    const before = JSON.stringify(item)
+    for (const Component of [ItemCard, UpcomingCard, ItemRow]) {
+      let root
+      await act(async () => { root = renderer.create(React.createElement(Component, { item, from: '2026-10-20', onEdit() {}, onDelete() {} })) })
+      try {
+        const content = text(root.root)
+        assert.ok(content.includes(label(entry)))
+        assert.ok(!content.includes(item.subject))
+      } finally { await act(async () => root.unmount()) }
+    }
+    for (const message of [buildMessage([item], '2026-10-20'), buildMessage([item], '2026-10-21'), buildWeekMessage([item], '2026-10-19')]) {
+      assert.ok(message.includes(label(entry)))
+      assert.ok(!message.includes(item.subject))
+    }
+    assert.equal(JSON.stringify(item), before)
+  }
+})
+
+test('Other is always a standalone neutral subject and saves unchanged', async () => {
+  const root = await mount()
+  try {
+    assert.equal(subjectColor('Other'), '#A0A8B4')
+    const other = button(root, 'Other')
+    assert.equal(other.props['aria-expanded'], undefined)
+    await click(other)
+    assert.equal(button(root, 'Other').props['aria-pressed'], true)
+    assert.equal(root.root.findAllByProps({ 'aria-label': 'New subject' }).length, 0)
+    await act(async () => root.root.findByProps({ placeholder: 'Worksheet 3.2, #1–20' }).props.onChange({ target: { value: 'Class photos' } }))
+    await submit(root)
+    assert.equal(writes.at(-1).item.subject, 'Other')
+  } finally { await act(async () => root.unmount()) }
+})
+
+test('Other photos and documents upload through Files and attach to Other daily homework', async () => {
+  const item = { id: 'misc', subject: 'Other', title: 'Class photos', type: 'daily', assigned_date: '2026-10-20', due_date: '2099-10-23', notes: null, link: null }
+  for (const file of [{ name: 'Class photo.jpg', type: 'image/jpeg', size: 1234 }, { name: 'Class handout.pdf', type: 'application/pdf', size: 2345 }]) {
+    const data = fixture([item])
+    let root
+    await act(async () => { root = renderer.create(React.createElement(Materials, { data })) })
+    try {
+      await click(button(root, 'Upload teacher material'))
+      await act(async () => root.root.findByProps({ type: 'file' }).props.onChange({ target: { files: [file] } }))
+      await click(button(root, 'Other'))
+      assert.ok(root.root.findAllByType('option').some(option => option.props.value === item.id))
+      await act(async () => root.root.findByType('select').props.onChange({ target: { value: item.id } }))
+      await submit(root)
+      assert.equal(writes.at(-1).meta.subject, 'Other')
+      assert.equal(writes.at(-1).meta.item_id, item.id)
+      assert.equal(writes.at(-1).file, file)
+      const material = { ...writes.at(-1).meta, id: 'file', file_name: file.name, file_type: file.type, file_path: 'private-path', file_size: file.size }
+      for (const Component of [ItemCard, UpcomingCard]) {
+        let card
+        await act(async () => { card = renderer.create(React.createElement(Component, { item, from: '2026-10-20', files: [material] })) })
+        try {
+          await click(card.root.findByProps({ 'aria-label': `Prepare ${material.title} for download` }))
+          assert.equal(card.root.findByProps({ 'aria-label': `Open ${material.title}` }).props.href, 'https://synthetic.invalid/private-signed-file')
+        } finally { await act(async () => card.unmount()) }
+      }
+    } finally { await act(async () => root.unmount()) }
+  }
+  // Files can also be uploaded as Other without creating homework first.
+  let root
+  await act(async () => { root = renderer.create(React.createElement(Materials, { data: fixture([]) })) })
+  try {
+    await click(button(root, 'Upload teacher material'))
+    assert.ok(button(root, 'Other'))
+  } finally { await act(async () => root.unmount()) }
 })
